@@ -86,8 +86,13 @@ namespace AddressBook.Controllers
         {
             //_context.Users.Add(user);
             //await _context.SaveChangesAsync();
+            if (_context.Users.AnyAsync(u => u.Login == user.Login).Result)
+            {
+                return Conflict();
+            }
+
             await _usersService.AddUserAsync(user);
-            return CreatedAtAction("GetUser", new { id = user.Id }, user);
+            return CreatedAtAction(nameof(user), new { id = user.Id }, user);
         }
 
         // DELETE: api/Users/5

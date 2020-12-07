@@ -5,20 +5,30 @@ using System.Threading.Tasks;
 using AddressBook.DTO;
 using AddressBook.Models;
 
-namespace AddressBook.BL {
-    public class ManageUsersService {
+namespace AddressBook.BL
+{
+    public class ManageUsersService
+    {
 
         private readonly AddressBookContext _usersContext;
 
-        public ManageUsersService(AddressBookContext usersContext) {
+        public ManageUsersService(AddressBookContext usersContext)
+        {
             _usersContext = usersContext;
         }
-        public async Task<Result<bool>> AddUserAsync(UserDto user) {
+        public async Task<Result<bool>> AddUserAsync(UserDto user)
+        {
 
             // validate data
+            var newUser = User.Register(user.Login, user.Password);
+            if (!newUser.Succeeded)
+            {
+                return Result<bool>.Success(false);
+            }
 
             // perform additional actions
 
+            _usersContext.Users.Add(newUser.Value);
             await _usersContext.SaveChangesAsync();
 
             return Result<bool>.Success(true);

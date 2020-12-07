@@ -11,7 +11,8 @@ namespace AddressBook
     {
         public AddressBookContext(DbContextOptions<AddressBookContext> options) : base(options)
         {
-            this.Database.EnsureCreated();
+            //Database.EnsureDeleted();
+            Database.EnsureCreated();
         }
         public virtual DbSet<User> Users { get; set; }
         //public virtual DbSet<Subscriber> Subscribers { get; set; }
