@@ -6,6 +6,8 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using AddressBook;
+using AddressBook.BL;
+using AddressBook.DTO;
 using AddressBook.Models;
 
 namespace AddressBook.Controllers
@@ -15,10 +17,12 @@ namespace AddressBook.Controllers
     public class UsersController : ControllerBase
     {
         private readonly AddressBookContext _context;
+        private readonly ManageUsersService _usersService;
 
-        public UsersController(AddressBookContext context)
+        public UsersController(AddressBookContext context, ManageUsersService usersService)
         {
             _context = context;
+            _usersService = usersService;
         }
 
         // GET: api/Users
@@ -78,11 +82,11 @@ namespace AddressBook.Controllers
         // To protect from overposting attacks, enable the specific properties you want to bind to, for
         // more details, see https://go.microsoft.com/fwlink/?linkid=2123754.
         [HttpPost]
-        public async Task<ActionResult<User>> PostUser(User user)
+        public async Task<ActionResult<User>> PostUser(UserDto user)
         {
-            _context.Users.Add(user);
-            await _context.SaveChangesAsync();
-
+            //_context.Users.Add(user);
+            //await _context.SaveChangesAsync();
+            await _usersService.AddUserAsync(user);
             return CreatedAtAction("GetUser", new { id = user.Id }, user);
         }
 

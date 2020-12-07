@@ -11,6 +11,7 @@ namespace AddressBook
     {
         public AddressBookContext(DbContextOptions<AddressBookContext> options) : base(options)
         {
+            this.Database.EnsureCreated();
         }
         public virtual DbSet<User> Users { get; set; }
         //public virtual DbSet<Subscriber> Subscribers { get; set; }
@@ -33,14 +34,14 @@ namespace AddressBook
             modelBuilder.Entity<Group>().ToTable("GroupsTable").HasKey(g => g.Id);
 
             modelBuilder.Entity<Phone>().ToTable("PhoneTable").HasKey(p => p.Id);
-            modelBuilder.Entity<Phone>().HasOne(a => a.GroupPhone).WithMany().HasForeignKey(ph => ph.GroupPhoneId).OnDelete(DeleteBehavior.SetNull);
+            modelBuilder.Entity<Phone>().HasOne(a => a.GroupPhone).WithMany().HasForeignKey(ph => ph.GroupPhoneId).OnDelete(DeleteBehavior.NoAction);
 
             modelBuilder.Entity<Address>().ToTable("AddressTable").HasKey(a => a.Id);
-            modelBuilder.Entity<Address>().HasOne(a => a.GroupAddress).WithMany().HasForeignKey(a => a.GroupAddressId).OnDelete(DeleteBehavior.SetNull);
+            modelBuilder.Entity<Address>().HasOne(a => a.GroupAddress).WithMany().HasForeignKey(a => a.GroupAddressId).OnDelete(DeleteBehavior.NoAction);
 
             modelBuilder.Entity<SubscriberGroup>().ToTable("SubscribersGroups").HasKey(sg => new { sg.GroupId, sg.SubscriberId });
-            modelBuilder.Entity<SubscriberGroup>().HasOne(sg => sg.Subscriber).WithMany(s => s.GroupInternal).OnDelete(DeleteBehavior.SetNull);
-            modelBuilder.Entity<SubscriberGroup>().HasOne(sg => sg.Group).WithMany(s => s.SubscriberGroups).OnDelete(DeleteBehavior.SetNull);
+            modelBuilder.Entity<SubscriberGroup>().HasOne(sg => sg.Subscriber).WithMany(s => s.GroupInternal).OnDelete(DeleteBehavior.NoAction);
+            modelBuilder.Entity<SubscriberGroup>().HasOne(sg => sg.Group).WithMany(s => s.SubscriberGroups).OnDelete(DeleteBehavior.NoAction);
 
             modelBuilder.Entity<Subscriber>().ToTable("SubscribersTable").HasKey(s => s.Id);
             modelBuilder.Entity<Subscriber>().Ignore(s => s.Addresses);
@@ -76,12 +77,12 @@ namespace AddressBook
             return null;
         }
 
-        public DbSet<AddressBook.Models.Subscriber> Subscriber { get; set; }
+        public virtual DbSet<AddressBook.Models.Subscriber> Subscriber { get; set; }
 
-        public DbSet<AddressBook.Models.GroupPhone> GroupPhone { get; set; }
+        public virtual DbSet<AddressBook.Models.GroupPhone> GroupPhone { get; set; }
 
-        public DbSet<AddressBook.Models.GroupAddress> GroupAddress { get; set; }
+        public virtual DbSet<AddressBook.Models.GroupAddress> GroupAddress { get; set; }
 
-        public DbSet<AddressBook.Models.Group> Group { get; set; }
+        public virtual DbSet<AddressBook.Models.Group> Group { get; set; }
     }
 }

@@ -1,0 +1,28 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using AddressBook.DTO;
+using AddressBook.Models;
+
+namespace AddressBook.BL {
+    public class ManageUsersService {
+
+        private readonly AddressBookContext _usersContext;
+
+        public ManageUsersService(AddressBookContext usersContext) {
+            _usersContext = usersContext;
+        }
+        public async Task<Result<bool>> AddUserAsync(UserDto user) {
+
+            // validate data
+
+            // perform additional actions
+
+            await _usersContext.SaveChangesAsync();
+
+            return Result<bool>.Success(true);
+        }
+    }
+
+}
