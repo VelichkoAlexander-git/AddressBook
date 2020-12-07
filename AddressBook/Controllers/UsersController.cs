@@ -92,7 +92,7 @@ namespace AddressBook.Controllers
             }
 
             await _usersService.AddUserAsync(user);
-            return CreatedAtAction(nameof(user), new { id = user.Id }, user);
+            return CreatedAtAction("GetUser", new { id = user.Id }, user);
         }
 
         // DELETE: api/Users/5
