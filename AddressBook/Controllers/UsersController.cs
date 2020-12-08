@@ -92,7 +92,7 @@ namespace AddressBook.Controllers
             }
 
             await _usersService.AddUserAsync(user);
-            return CreatedAtAction("GetUser", new { id = user.Id }, user);
+            return CreatedAtAction("GetUser", new { id = _context.Users.First(u => u.Login == user.Login).Id }, user);
         }
 
         // DELETE: api/Users/5
