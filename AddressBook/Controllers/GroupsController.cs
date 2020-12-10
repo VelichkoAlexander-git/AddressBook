@@ -7,18 +7,24 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using AddressBook;
 using AddressBook.Models;
+using AddressBook.BL;
+using AddressBook.DTO;
 
 namespace AddressBook.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/Users/{userId:int}/[controller]")]
     [ApiController]
     public class GroupsController : ControllerBase
     {
         private readonly AddressBookContext _context;
+        private readonly ManageGroupService _service;
+        private readonly int _userId;
 
-        public GroupsController(AddressBookContext context)
+        public GroupsController(int userId, AddressBookContext context, ManageGroupService service)
         {
             _context = context;
+            _userId = userId;
+            _service = service;
         }
 
         // GET: api/Groups
@@ -32,14 +38,14 @@ namespace AddressBook.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<Group>> GetGroup(int id)
         {
-            var @group = await _context.Group.FindAsync(id);
+            var @group = await _context.Users.Where(u => u.Id == _userId).Select(u => u.Groups.Where(g => g.Id == id)).ToListAsync();
 
             if (@group == null)
             {
                 return NotFound();
             }
 
-            return @group;
+            return CreatedAtAction("", @group);
         }
 
         // PUT: api/Groups/5
@@ -78,12 +84,13 @@ namespace AddressBook.Controllers
         // To protect from overposting attacks, enable the specific properties you want to bind to, for
         // more details, see https://go.microsoft.com/fwlink/?linkid=2123754.
         [HttpPost]
-        public async Task<ActionResult<Group>> PostGroup(Group @group)
+        public async Task<ActionResult<Group>> PostGroup(GroupDto item)
         {
-            _context.Group.Add(@group);
-            await _context.SaveChangesAsync();
+            //_context.Group.Add(@group);
+            //await _context.SaveChangesAsync();
+            await _service.AddGroupAsync(_userId, item);
 
-            return CreatedAtAction("GetGroup", new { id = @group.Id }, @group);
+            return CreatedAtAction("GetGroup", new { id = item.Id }, item);
         }
 
         // DELETE: api/Groups/5

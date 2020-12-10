@@ -157,6 +157,13 @@ namespace AddressBook.Models
             GroupInternal.Add(result.Value);
             return Result<bool>.Success(true);
         }
+        public Result<bool> AddGroup(Group group)
+        {
+            GroupInternal.Add(group);
+
+            return Result<bool>.Success(true);
+        }
+
         public Result<bool> RemoveGroup(Group groupToDelete)
         {
             var errors = new List<string>();

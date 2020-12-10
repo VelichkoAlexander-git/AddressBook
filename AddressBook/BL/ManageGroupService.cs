@@ -9,13 +9,13 @@ namespace AddressBook.BL
 {
     public class ManageGroupService
     {
-        private readonly AddressBookContext _groupContext;
+        private readonly AddressBookContext db;
 
         public ManageGroupService(AddressBookContext GroupContext)
         {
-            _groupContext = GroupContext;
+            db = GroupContext;
         }
-        public async Task<Result<bool>> AddGroupAsync(GroupDto group)
+        public async Task<Result<bool>> AddGroupAsync(int userId, GroupDto group)
         {
 
             // validate data
@@ -26,7 +26,8 @@ namespace AddressBook.BL
             }
             // perform additional actions
 
-            await _groupContext.SaveChangesAsync();
+            db.Users.Where(u => u.Id == userId).Select(u => u.AddGroup(newGroup.Value));
+            await db.SaveChangesAsync();
 
             return Result<bool>.Success(true);
         }
