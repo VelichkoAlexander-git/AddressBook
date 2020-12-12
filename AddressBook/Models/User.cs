@@ -178,6 +178,22 @@ namespace AddressBook.Models
             GroupInternal.Remove(groupToDelete);
             return Result<bool>.Success(true);
         }
+
+        public Result<bool> RemoveGroup(int id)
+        {
+            var errors = new List<string>();
+
+            if (!GroupInternal.Any(g => g.Id == id)) errors.Add(nameof(Group));
+
+            if (errors.Any())
+            {
+                return Result<bool>.Fail(errors);
+            }
+
+            var item = GroupInternal.Find(u => u.Id == id);
+            GroupInternal.Remove(item);
+            return Result<bool>.Success(true);
+        }
         #endregion
     }
 }

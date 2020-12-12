@@ -18,41 +18,40 @@ namespace AddressBook.Controllers
     {
         private readonly AddressBookContext _context;
         private readonly ManageGroupService _service;
-        private readonly int _userId;
 
-        public GroupsController(int userId, AddressBookContext context, ManageGroupService service)
+        public GroupsController(AddressBookContext context, ManageGroupService service)
         {
             _context = context;
-            _userId = userId;
             _service = service;
         }
 
         // GET: api/Groups
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Group>>> GetGroup()
+        public async Task<ActionResult<IEnumerable<Group>>> GetGroup(int userId)
         {
             return await _context.Group.ToListAsync();
         }
 
         // GET: api/Groups/5
         [HttpGet("{id}")]
-        public async Task<ActionResult<Group>> GetGroup(int id)
+        public async Task<ActionResult<Group>> GetGroup(int userId, int id)
         {
-            var @group = await _context.Users.Where(u => u.Id == _userId).Select(u => u.Groups.Where(g => g.Id == id)).ToListAsync();
+            var user = _context.GetUser(userId);
+            var item = user.GroupInternal.Find(u => u.Id == id);
 
-            if (@group == null)
+            if (item == null)
             {
                 return NotFound();
             }
 
-            return CreatedAtAction("", @group);
+            return item;
         }
 
         // PUT: api/Groups/5
         // To protect from overposting attacks, enable the specific properties you want to bind to, for
         // more details, see https://go.microsoft.com/fwlink/?linkid=2123754.
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutGroup(int id, Group @group)
+        public async Task<IActionResult> PutGroup(int userId, int id, Group @group)
         {
             if (id != @group.Id)
             {
@@ -67,7 +66,7 @@ namespace AddressBook.Controllers
             }
             catch (DbUpdateConcurrencyException)
             {
-                if (!GroupExists(id))
+                if (!GroupExists(userId,id))
                 {
                     return NotFound();
                 }
@@ -84,32 +83,33 @@ namespace AddressBook.Controllers
         // To protect from overposting attacks, enable the specific properties you want to bind to, for
         // more details, see https://go.microsoft.com/fwlink/?linkid=2123754.
         [HttpPost]
-        public async Task<ActionResult<Group>> PostGroup(GroupDto item)
+        public async Task<ActionResult<Group>> PostGroup(int userId, GroupDto item)
         {
-            //_context.Group.Add(@group);
-            //await _context.SaveChangesAsync();
-            await _service.AddGroupAsync(_userId, item);
+            item.UserId = userId;
+            await _service.AddGroupAsync(item);
 
-            return CreatedAtAction("GetGroup", new { id = item.Id }, item);
+            return CreatedAtAction("GetGroup", new { userId = item.UserId, id = item.Id }, item);
         }
 
         // DELETE: api/Groups/5
         [HttpDelete("{id}")]
-        public async Task<ActionResult<Group>> DeleteGroup(int id)
+        public async Task<ActionResult<Group>> DeleteGroup(int userId, int id)
         {
-            var @group = await _context.Group.FindAsync(id);
-            if (@group == null)
+            var user = _context.GetUser(userId);
+
+            if (user == null)
             {
                 return NotFound();
             }
 
-            _context.Group.Remove(@group);
+            var item = user.RemoveGroup(id);
+
             await _context.SaveChangesAsync();
 
-            return @group;
+            return CreatedAtAction("GetUser", item.Succeeded);
         }
 
-        private bool GroupExists(int id)
+        private bool GroupExists(int userId, int id)
         {
             return _context.Group.Any(e => e.Id == id);
         }

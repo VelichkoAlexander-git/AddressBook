@@ -15,18 +15,17 @@ namespace AddressBook.BL
         {
             db = GroupContext;
         }
-        public async Task<Result<bool>> AddGroupAsync(int userId, GroupDto group)
+        public async Task<Result<bool>> AddGroupAsync(GroupDto group)
         {
-
-            // validate data
             var newGroup = Group.Create(group.Name);
             if (!newGroup.Succeeded)
             {
                 return Result<bool>.Success(false);
             }
-            // perform additional actions
 
-            db.Users.Where(u => u.Id == userId).Select(u => u.AddGroup(newGroup.Value));
+            var user = db.GetUser(group.UserId);
+            var item = user.AddGroup(newGroup.Value);
+
             await db.SaveChangesAsync();
 
             return Result<bool>.Success(true);
