@@ -27,19 +27,30 @@ namespace AddressBook.Controllers
 
         // GET: api/Groups
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Group>>> GetGroup(int userId)
+        public async Task<ActionResult<IEnumerable<GroupDto>>> GetGroup(int userId)
         {
-            return await _context.Group.ToListAsync();
+            var user = _context.GetUser(userId);
+
+            List<GroupDto> item = user.GroupInternal.Select(u => new GroupDto() {Id = u.Id, UserId = u.UserId, Name = u.Name }).ToList();
+
+            return item;
         }
 
         // GET: api/Groups/5
         [HttpGet("{id}")]
-        public async Task<ActionResult<Group>> GetGroup(int userId, int id)
+        public async Task<ActionResult<GroupDto>> GetGroup(int userId, int id)
         {
             var user = _context.GetUser(userId);
-            var item = user.GroupInternal.Find(u => u.Id == id);
+            var group = user.GroupInternal.Find(u => u.Id == id);
 
-            if (item == null)
+            GroupDto item = new GroupDto()
+            {
+                Id = group.Id,
+                UserId = group.UserId,
+                Name = group.Name
+            };
+
+            if (group == null)
             {
                 return NotFound();
             }
@@ -51,14 +62,14 @@ namespace AddressBook.Controllers
         // To protect from overposting attacks, enable the specific properties you want to bind to, for
         // more details, see https://go.microsoft.com/fwlink/?linkid=2123754.
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutGroup(int userId, int id, Group @group)
+        public async Task<IActionResult> PutGroup(int userId, int id, GroupDto groupDto)
         {
-            if (id != @group.Id)
+            if (id != groupDto.Id)
             {
                 return BadRequest();
             }
 
-            _context.Entry(@group).State = EntityState.Modified;
+            _context.Entry(groupDto).State = EntityState.Modified;
 
             try
             {
@@ -111,7 +122,7 @@ namespace AddressBook.Controllers
 
         private bool GroupExists(int userId, int id)
         {
-            return _context.Group.Any(e => e.Id == id);
+            return _context.Users.Find(userId).Groups.Any(e => e.Id == id);
         }
     }
 }

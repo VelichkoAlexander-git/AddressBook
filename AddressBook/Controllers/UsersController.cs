@@ -34,16 +34,22 @@ namespace AddressBook.Controllers
 
         // GET: api/Users/5
         [HttpGet("{id}")]
-        public async Task<ActionResult<User>> GetUser(int id)
+        public async Task<ActionResult<UserDto>> GetUser(int id)
         {
             var user = _context.GetUser(id);
+            UserDto item = new UserDto()
+            {
+                Id = user.Id,
+                Login = user.Login,
+                Password = user.Password
+            };
 
             if (user == null)
             {
                 return NotFound();
             }
 
-            return user;
+            return item;
         }
 
         // PUT: api/Users/5
