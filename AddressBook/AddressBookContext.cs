@@ -78,6 +78,11 @@ namespace AddressBook
             return null;
         }
 
+        public bool UserExists(int id)
+        {
+            return Users.Any(e => e.Id == id);
+        }
+
         public virtual DbSet<AddressBook.Models.Subscriber> Subscriber { get; set; }
 
         public virtual DbSet<AddressBook.Models.GroupPhone> GroupPhone { get; set; }
