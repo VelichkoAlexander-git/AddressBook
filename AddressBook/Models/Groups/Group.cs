@@ -35,6 +35,7 @@ namespace AddressBook.Models
             };
             return Result<Group>.Success(newGroup);
         }
+
         public override string ToString()
         {
             return string.Format($"Group : {Name}");

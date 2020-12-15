@@ -164,6 +164,13 @@ namespace AddressBook.Models
             return Result<bool>.Success(true);
         }
 
+        public Result<bool> UpdateGroup(int id, string name)
+        {
+            //GroupInternal.Find(g => g.Id == id).Name = name;
+
+            return Result<bool>.Success(true);
+        }
+
         public Result<bool> RemoveGroup(Group groupToDelete)
         {
             var errors = new List<string>();

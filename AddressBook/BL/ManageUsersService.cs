@@ -18,7 +18,10 @@ namespace AddressBook.BL
         }
         public async Task<Result<bool>> AddUserAsync(UserDto user)
         {
-
+            if (_usersContext.Users.Any(u => u.Login == user.Login))
+            {
+                return Result<bool>.Success(false);
+            }
             // validate data
             var newUser = User.Register(user.Login, user.Password);
             if (!newUser.Succeeded)

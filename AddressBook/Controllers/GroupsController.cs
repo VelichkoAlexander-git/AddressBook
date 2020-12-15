@@ -70,9 +70,12 @@ namespace AddressBook.Controllers
             }
 
             _context.Entry(groupDto).State = EntityState.Modified;
-
+         
             try
             {
+                var user = _context.GetUser(userId);
+                var group = user.UpdateGroup(id, groupDto.Name);
+
                 await _context.SaveChangesAsync();
             }
             catch (DbUpdateConcurrencyException)
@@ -96,6 +99,11 @@ namespace AddressBook.Controllers
         [HttpPost]
         public async Task<ActionResult<Group>> PostGroup(int userId, GroupDto item)
         {
+            if (_context.Users.Find(userId).Groups.Any(g => g.Name == item.Name))
+            {
+                return Conflict();
+            }
+
             item.UserId = userId;
             await _service.AddGroupAsync(item);
 

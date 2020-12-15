@@ -27,9 +27,11 @@ namespace AddressBook.Controllers
 
         // GET: api/Users
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<User>>> GetUsers()
+        public async Task<ActionResult<IEnumerable<UserDto>>> GetUsers()
         {
-            return await _context.Users.ToListAsync();
+            List<UserDto> item = _context.Users.Select(u => new UserDto() { Id = u.Id, Login = u.Login, Password = u.Password }).ToList();
+
+            return item;
         }
 
         // GET: api/Users/5
@@ -37,17 +39,18 @@ namespace AddressBook.Controllers
         public async Task<ActionResult<UserDto>> GetUser(int id)
         {
             var user = _context.GetUser(id);
+
+            if (user == null)
+            {
+                return NotFound();
+            }
+
             UserDto item = new UserDto()
             {
                 Id = user.Id,
                 Login = user.Login,
                 Password = user.Password
             };
-
-            if (user == null)
-            {
-                return NotFound();
-            }
 
             return item;
         }
@@ -56,7 +59,7 @@ namespace AddressBook.Controllers
         // To protect from overposting attacks, enable the specific properties you want to bind to, for
         // more details, see https://go.microsoft.com/fwlink/?linkid=2123754.
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutUser(int id, User user)
+        public async Task<IActionResult> PutUser(int id, UserDto user)
         {
             if (id != user.Id)
             {
@@ -90,14 +93,12 @@ namespace AddressBook.Controllers
         [HttpPost]
         public async Task<ActionResult<User>> PostUser(UserDto user)
         {
-            //_context.Users.Add(user);
-            //await _context.SaveChangesAsync();
-            if (_context.Users.AnyAsync(u => u.Login == user.Login).Result)
+            var error = await _usersService.AddUserAsync(user);
+            if (!error.Succeeded)
             {
-                return Conflict();
+                BadRequest(error);
             }
 
-            await _usersService.AddUserAsync(user);
             return CreatedAtAction("GetUser", new { id = _context.Users.FirstAsync(u => u.Login == user.Login).Id }, user);
         }
 
