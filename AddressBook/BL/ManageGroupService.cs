@@ -24,7 +24,7 @@ namespace AddressBook.BL
             }
 
             var user = db.GetUser(group.UserId);
-            var item = user.AddGroup(newGroup.Value);
+            user.AddGroup(newGroup.Value);
 
             await db.SaveChangesAsync();
 
