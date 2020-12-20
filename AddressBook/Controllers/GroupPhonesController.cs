@@ -7,104 +7,111 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using AddressBook;
 using AddressBook.Models;
+using AddressBook.BL;
+using AddressBook.DTO;
 
 namespace AddressBook.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/Users/{userId:int}/[controller]")]
     [ApiController]
     public class GroupPhonesController : ControllerBase
     {
         private readonly AddressBookContext _context;
+        private readonly ManagerGroupPhoneService _service;
 
-        public GroupPhonesController(AddressBookContext context)
+        public GroupPhonesController(AddressBookContext context, ManagerGroupPhoneService service)
         {
             _context = context;
+            _service = service;
         }
 
         // GET: api/GroupPhones
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<GroupPhone>>> GetGroupPhone()
+        public async Task<ActionResult<IEnumerable<GroupPhoneDto>>> GetGroupPhone(int userId)
         {
-            return await _context.GroupPhone.ToListAsync();
+            var user = _context.GetUser(userId);
+            List<GroupPhoneDto> item = user.GroupPhoneInternal.Select(u => new GroupPhoneDto() { Id = u.Id, UserId = u.UserId, Name = u.Name }).ToList();
+
+            return item;
         }
 
         // GET: api/GroupPhones/5
         [HttpGet("{id}")]
-        public async Task<ActionResult<GroupPhone>> GetGroupPhone(int id)
+        public async Task<ActionResult<GroupPhoneDto>> GetGroupPhone(int userId, int id)
         {
-            var groupPhone = await _context.GroupPhone.FindAsync(id);
-
-            if (groupPhone == null)
+            var user = _context.GetUser(userId);
+            if (user != null)
             {
+                var groupPhone = user.GroupPhoneInternal.Find(u => u.Id == id);
+                if (groupPhone != null)
+                {
+                    GroupPhoneDto item = new GroupPhoneDto()
+                    {
+                        Id = groupPhone.Id,
+                        UserId = groupPhone.UserId,
+                        Name = groupPhone.Name
+                    };
+
+                    return item;
+                }
                 return NotFound();
             }
-
-            return groupPhone;
+            return NotFound();
         }
 
         // PUT: api/GroupPhones/5
         // To protect from overposting attacks, enable the specific properties you want to bind to, for
         // more details, see https://go.microsoft.com/fwlink/?linkid=2123754.
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutGroupPhone(int id, GroupPhone groupPhone)
+        public async Task<IActionResult> PutGroupPhone(int userId, int id, GroupPhoneDto groupPhoneDto)
         {
-            if (id != groupPhone.Id)
+            if (id != groupPhoneDto.Id)
             {
                 return BadRequest();
             }
 
-            _context.Entry(groupPhone).State = EntityState.Modified;
-
-            try
+            var user = _context.GetUser(userId);
+            if (user != null)
             {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!GroupPhoneExists(id))
+                var groupPhone = user.UpdateGroupPhone(id, groupPhoneDto.Name);
+                if (groupPhone.Succeeded)
                 {
-                    return NotFound();
+                    await _context.SaveChangesAsync();
+                    return Ok();
                 }
-                else
-                {
-                    throw;
-                }
+                return BadRequest(groupPhone.Errors);
             }
-
-            return NoContent();
+            return BadRequest("Group phone not found");
         }
 
         // POST: api/GroupPhones
         // To protect from overposting attacks, enable the specific properties you want to bind to, for
         // more details, see https://go.microsoft.com/fwlink/?linkid=2123754.
         [HttpPost]
-        public async Task<ActionResult<GroupPhone>> PostGroupPhone(GroupPhone groupPhone)
+        public async Task<ActionResult<GroupPhone>> PostGroupPhone(int userId, GroupPhoneDto groupPhone)
         {
-            _context.GroupPhone.Add(groupPhone);
-            await _context.SaveChangesAsync();
-
-            return CreatedAtAction("GetGroupPhone", new { id = groupPhone.Id }, groupPhone);
+            if (!_context.Users.Find(userId).Groups.Any(g => g.Name == groupPhone.Name))
+            {
+                groupPhone.UserId = userId;
+                await _service.AddGroupPhoneAsync(groupPhone);
+                return CreatedAtAction("GetGroupPhone", new { userId = groupPhone.UserId, id = groupPhone.Id }, groupPhone);
+            }
+            return Conflict();
         }
 
         // DELETE: api/GroupPhones/5
         [HttpDelete("{id}")]
-        public async Task<ActionResult<GroupPhone>> DeleteGroupPhone(int id)
+        public async Task<ActionResult<GroupPhone>> DeleteGroupPhone(int userId, int id)
         {
-            var groupPhone = await _context.GroupPhone.FindAsync(id);
-            if (groupPhone == null)
+            var user = _context.GetUser(userId);
+            if (user != null)
             {
-                return NotFound();
+                var groupPhone = user.GroupPhoneInternal.Find(u => u.Id == id);
+                user.RemoveGroupPhone(groupPhone);
+                await _context.SaveChangesAsync();
+                return groupPhone;
             }
-
-            _context.GroupPhone.Remove(groupPhone);
-            await _context.SaveChangesAsync();
-
-            return groupPhone;
-        }
-
-        private bool GroupPhoneExists(int id)
-        {
-            return _context.GroupPhone.Any(e => e.Id == id);
+            return NotFound();
         }
     }
 }

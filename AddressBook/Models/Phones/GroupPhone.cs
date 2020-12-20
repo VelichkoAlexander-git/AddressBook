@@ -33,6 +33,23 @@ namespace AddressBook.Models
 
             return Result<GroupPhone>.Success(newGroupPhone);
         }
+
+        public Result<bool> Update(string name)
+        {
+            var errors = new List<string>();
+
+            if (string.IsNullOrEmpty(name)) { errors.Add("Name is required"); }
+
+            if (errors.Any())
+            {
+                return Result<bool>.Fail(errors);
+            }
+
+            Name = name;
+
+            return Result<bool>.Success(true);
+        }
+
         public override string ToString()
         {
             return string.Format($"Group Phone : {Name}");
