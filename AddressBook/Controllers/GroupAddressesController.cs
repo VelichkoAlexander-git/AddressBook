@@ -7,104 +7,111 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using AddressBook;
 using AddressBook.Models;
+using AddressBook.BL;
+using AddressBook.DTO;
 
 namespace AddressBook.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/Users/{userId:int}/[controller]")]
     [ApiController]
     public class GroupAddressesController : ControllerBase
     {
         private readonly AddressBookContext _context;
+        private readonly ManageGroupAddressService _service;
 
-        public GroupAddressesController(AddressBookContext context)
+        public GroupAddressesController(AddressBookContext context, ManageGroupAddressService service)
         {
             _context = context;
+            _service = service;
         }
 
         // GET: api/GroupAddresses
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<GroupAddress>>> GetGroupAddress()
+        public async Task<ActionResult<IEnumerable<GroupAddressDto>>> GetGroupAddress(int userId)
         {
-            return await _context.GroupAddress.ToListAsync();
+            var user = _context.GetUser(userId);
+            List<GroupAddressDto> item = user.GroupAddressInternal.Select(u => new GroupAddressDto() { Id = u.Id, UserId = u.UserId, Name = u.Name }).ToList();
+
+            return item;
         }
 
         // GET: api/GroupAddresses/5
         [HttpGet("{id}")]
-        public async Task<ActionResult<GroupAddress>> GetGroupAddress(int id)
+        public async Task<ActionResult<GroupAddressDto>> GetGroupAddress(int userId, int id)
         {
-            var groupAddress = await _context.GroupAddress.FindAsync(id);
-
-            if (groupAddress == null)
+            var user = _context.GetUser(userId);
+            if (user != null)
             {
+                var groupAddress = user.GroupAddressInternal.Find(u => u.Id == id);
+                if (groupAddress != null)
+                {
+                    GroupAddressDto item = new GroupAddressDto()
+                    {
+                        Id = groupAddress.Id,
+                        UserId = groupAddress.UserId,
+                        Name = groupAddress.Name
+                    };
+
+                    return item;
+                }
                 return NotFound();
             }
-
-            return groupAddress;
+            return NotFound();
         }
 
         // PUT: api/GroupAddresses/5
         // To protect from overposting attacks, enable the specific properties you want to bind to, for
         // more details, see https://go.microsoft.com/fwlink/?linkid=2123754.
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutGroupAddress(int id, GroupAddress groupAddress)
+        public async Task<IActionResult> PutGroupAddress(int userId, int id, GroupAddressDto groupAddressDto)
         {
-            if (id != groupAddress.Id)
+            if (id != groupAddressDto.Id)
             {
                 return BadRequest();
             }
 
-            _context.Entry(groupAddress).State = EntityState.Modified;
-
-            try
+            var user = _context.GetUser(userId);
+            if (user != null)
             {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!GroupAddressExists(id))
+                var groupAddress = user.UpdateGroupAddress(id, groupAddressDto.Name);
+                if (groupAddress.Succeeded)
                 {
-                    return NotFound();
+                    await _context.SaveChangesAsync();
+                    return Ok();
                 }
-                else
-                {
-                    throw;
-                }
+                return BadRequest(groupAddress.Errors);
             }
-
-            return NoContent();
+            return BadRequest("User not found");
         }
 
         // POST: api/GroupAddresses
         // To protect from overposting attacks, enable the specific properties you want to bind to, for
         // more details, see https://go.microsoft.com/fwlink/?linkid=2123754.
         [HttpPost]
-        public async Task<ActionResult<GroupAddress>> PostGroupAddress(GroupAddress groupAddress)
+        public async Task<ActionResult<GroupAddress>> PostGroupAddress(int userId, GroupAddressDto groupAddress)
         {
-            _context.GroupAddress.Add(groupAddress);
-            await _context.SaveChangesAsync();
-
-            return CreatedAtAction("GetGroupAddress", new { id = groupAddress.Id }, groupAddress);
+            if (!_context.Users.Find(userId).GroupAddressInternal.Any(g => g.Name == groupAddress.Name))
+            {
+                groupAddress.UserId = userId;
+                await _service.AddGroupAddressAsync(groupAddress);
+                return CreatedAtAction("GetGroupAddress", new { userId = groupAddress.UserId, id = groupAddress.Id }, groupAddress);
+            }
+            return Conflict();
         }
 
         // DELETE: api/GroupAddresses/5
         [HttpDelete("{id}")]
-        public async Task<ActionResult<GroupAddress>> DeleteGroupAddress(int id)
+        public async Task<ActionResult<GroupAddress>> DeleteGroupAddress(int userId, int id)
         {
-            var groupAddress = await _context.GroupAddress.FindAsync(id);
-            if (groupAddress == null)
+            var user = _context.GetUser(userId);
+            if (user != null)
             {
-                return NotFound();
+                var groupAddress = user.GroupAddressInternal.Find(u => u.Id == id);
+                user.RemoveGroupAddress(groupAddress);
+                await _context.SaveChangesAsync();
+                return groupAddress;
             }
-
-            _context.GroupAddress.Remove(groupAddress);
-            await _context.SaveChangesAsync();
-
-            return groupAddress;
-        }
-
-        private bool GroupAddressExists(int id)
-        {
-            return _context.GroupAddress.Any(e => e.Id == id);
+            return NotFound();
         }
     }
 }

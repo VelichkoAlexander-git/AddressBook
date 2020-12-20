@@ -9,20 +9,24 @@ namespace AddressBook.BL
 {
     public class ManageGroupAddressService
     {
-        private readonly AddressBookContext _groupAddressContext;
+        private readonly AddressBookContext db;
 
-        public ManageGroupAddressService(AddressBookContext GroupAddressContext)
+        public ManageGroupAddressService(AddressBookContext GroupContext)
         {
-            _groupAddressContext = GroupAddressContext;
+            db = GroupContext;
         }
-        public async Task<Result<bool>> AddGroupAddressAsync(int UserId, GroupAddressDto groupAddress)
+        public async Task<Result<bool>> AddGroupAddressAsync(GroupAddressDto groupAddress)
         {
+            var newGroupAddress = GroupAddress.Create(groupAddress.Name);
+            if (!newGroupAddress.Succeeded)
+            {
+                return Result<bool>.Success(false);
+            }
 
-            // validate data
+            var user = db.GetUser(groupAddress.UserId);
+            user.AddGroupAddress(newGroupAddress.Value);
 
-            // perform additional actions
-
-            await _groupAddressContext.SaveChangesAsync();
+            await db.SaveChangesAsync();
 
             return Result<bool>.Success(true);
         }
