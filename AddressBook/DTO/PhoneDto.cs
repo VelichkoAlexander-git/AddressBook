@@ -9,7 +9,7 @@ namespace AddressBook.DTO
     {
         public int Id { get; set; }
         public int? GroupPhoneId { get; set; }
-        public int SubscriberId { get; set; }
+        public int AbonentId { get; set; }
         public string Number { get; set; }
     }
 }

@@ -14,7 +14,7 @@ namespace AddressBook.Models
 
         protected User()
         {
-            SubscriberInternal = new List<Subscriber>();
+            AbonentInternal = new List<Abonent>();
             GroupPhoneInternal = new List<GroupPhone>();
             GroupAddressInternal = new List<GroupAddress>();
             GroupInternal = new List<Group>();
@@ -55,10 +55,10 @@ namespace AddressBook.Models
         }
         #endregion
 
-        #region Subscriber
-        internal List<Subscriber> SubscriberInternal { get; set; }
-        public IEnumerable<Subscriber> Subscribers => SubscriberInternal;
-        public Result<bool> AddSubscriber(string firstName, string middleName, string lastName, DateTime? dateOfBirth, byte[] photo, Sex sex, string mail)
+        #region Abonent
+        internal List<Abonent> AbonentInternal { get; set; }
+        public IEnumerable<Abonent> Abonents => AbonentInternal;
+        public Result<bool> AddAbonent(string firstName, string middleName, string lastName, DateTime? dateOfBirth, byte[] photo, Sex sex, string mail)
         {
             var errors = new List<string>();
 
@@ -67,24 +67,45 @@ namespace AddressBook.Models
                 return Result<bool>.Fail(errors);
             }
 
-            var result = Subscriber.Create(firstName, middleName, lastName, dateOfBirth, photo, sex, mail);
-            SubscriberInternal.Add(result.Value);
+            var result = Abonent.Create(firstName, middleName, lastName, dateOfBirth, photo, sex, mail);
+            AbonentInternal.Add(result.Value);
             return Result<bool>.Success(true);
         }
 
-        public Result<bool> RemoveSubscriber(Subscriber subscriberToDelete)
+        public Result<bool> AddAbonent(Abonent abonent)
+        {
+            GroupAddressInternal.Add(abonent);
+            return Result<bool>.Success(true);
+        }
+
+        public Result<bool> RemoveAbonent(Abonent AbonentToDelete)
         {
             var errors = new List<string>();
 
-            if (subscriberToDelete is null) errors.Add(nameof(subscriberToDelete));
+            if (AbonentToDelete is null) errors.Add(nameof(AbonentToDelete));
 
             if (errors.Any())
             {
                 return Result<bool>.Fail(errors);
             }
 
-            SubscriberInternal.Remove(subscriberToDelete);
+            AbonentInternal.Remove(AbonentToDelete);
             return Result<bool>.Success(true);
+        }
+
+        public Result<bool> UpdateAbonent(int id, string firstName, string middleName, string lastName, Sex sex, DateTime? dateOfBirth, byte[] photo, string mail)
+        {
+            var Abonent = AbonentInternal.FirstOrDefault(g => g.Id == id);
+            if (Abonent != null)
+            {
+                var updateResult = Abonent.Update(firstName, middleName, lastName, sex, dateOfBirth, photo, mail);
+                if (!updateResult.Succeeded)
+                {
+                    return Result<bool>.Fail(updateResult.Errors);
+                }
+                return Result<bool>.Success(true);
+            }
+            return Result<bool>.Fail("Abonent not found");
         }
         #endregion
 

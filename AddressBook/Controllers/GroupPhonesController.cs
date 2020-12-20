@@ -17,9 +17,9 @@ namespace AddressBook.Controllers
     public class GroupPhonesController : ControllerBase
     {
         private readonly AddressBookContext _context;
-        private readonly ManagerGroupPhoneService _service;
+        private readonly ManageGroupPhoneService _service;
 
-        public GroupPhonesController(AddressBookContext context, ManagerGroupPhoneService service)
+        public GroupPhonesController(AddressBookContext context, ManageGroupPhoneService service)
         {
             _context = context;
             _service = service;

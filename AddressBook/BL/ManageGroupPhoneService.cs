@@ -7,11 +7,11 @@ using System.Threading.Tasks;
 
 namespace AddressBook.BL
 {
-    public class ManagerGroupPhoneService
+    public class ManageGroupPhoneService
     {
         private readonly AddressBookContext db;
 
-        public ManagerGroupPhoneService(AddressBookContext GroupContext)
+        public ManageGroupPhoneService(AddressBookContext GroupContext)
         {
             db = GroupContext;
         }

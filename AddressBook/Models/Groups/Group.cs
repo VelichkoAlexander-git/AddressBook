@@ -13,8 +13,8 @@ namespace AddressBook.Models
         public int UserId { get; protected set; }
         public virtual User User { get; protected set; }
 
-        public IEnumerable<Subscriber> Subscribers => SubscriberGroups.Select(sg => sg.Subscriber);
-        internal ICollection<SubscriberGroup> SubscriberGroups { get; set; }
+        public IEnumerable<Abonent> Abonents => AbonentGroups.Select(sg => sg.Abonent);
+        internal ICollection<AbonentGroup> AbonentGroups { get; set; }
         protected Group()
         { }
 
