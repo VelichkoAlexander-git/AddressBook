@@ -30,8 +30,7 @@ namespace AddressBook.Controllers
         public async Task<ActionResult<IEnumerable<GroupDto>>> GetGroup(int userId)
         {
             var user = _context.GetUser(userId);
-
-            List<GroupDto> item = user.GroupInternal.Select(u => new GroupDto() {Id = u.Id, UserId = u.UserId, Name = u.Name }).ToList();
+            List<GroupDto> item = user.GroupInternal.Select(u => new GroupDto() { Id = u.Id, UserId = u.UserId, Name = u.Name }).ToList();
 
             return item;
         }
@@ -41,21 +40,23 @@ namespace AddressBook.Controllers
         public async Task<ActionResult<GroupDto>> GetGroup(int userId, int id)
         {
             var user = _context.GetUser(userId);
-            var group = user.GroupInternal.Find(u => u.Id == id);
-
-            GroupDto item = new GroupDto()
+            if (user != null)
             {
-                Id = group.Id,
-                UserId = group.UserId,
-                Name = group.Name
-            };
+                var group = user.GroupInternal.Find(u => u.Id == id);
+                if (group != null)
+                {
+                    GroupDto item = new GroupDto()
+                    {
+                        Id = group.Id,
+                        UserId = group.UserId,
+                        Name = group.Name
+                    };
 
-            if (group == null)
-            {
+                    return item;                    
+                }
                 return NotFound();
             }
-
-            return item;
+            return NotFound();
         }
 
         // PUT: api/Groups/5
@@ -69,45 +70,33 @@ namespace AddressBook.Controllers
                 return BadRequest();
             }
 
-            _context.Entry(groupDto).State = EntityState.Modified;
-         
-            try
+            var user = _context.GetUser(userId);
+            if (user != null)
             {
-                var user = _context.GetUser(userId);
                 var group = user.UpdateGroup(id, groupDto.Name);
-
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!GroupExists(userId,id))
+                if (group.Succeeded)
                 {
-                    return NotFound();
+                    await _context.SaveChangesAsync();
+                    return Ok();
                 }
-                else
-                {
-                    throw;
-                }
+                return BadRequest(group.Errors);
             }
-
-            return NoContent();
+            return BadRequest("User not found");
         }
 
         // POST: api/Groups
         // To protect from overposting attacks, enable the specific properties you want to bind to, for
         // more details, see https://go.microsoft.com/fwlink/?linkid=2123754.
         [HttpPost]
-        public async Task<ActionResult<Group>> PostGroup(int userId, GroupDto item)
+        public async Task<ActionResult<Group>> PostGroup(int userId, GroupDto group)
         {
-            if (_context.Users.Find(userId).Groups.Any(g => g.Name == item.Name))
+            if (!_context.Users.Find(userId).Groups.Any(g => g.Name == group.Name))
             {
-                return Conflict();
+                group.UserId = userId;
+                await _service.AddGroupAsync(group);
+                return CreatedAtAction("GetGroup", new { userId = group.UserId, id = group.Id }, group);
             }
-
-            item.UserId = userId;
-            await _service.AddGroupAsync(item);
-
-            return CreatedAtAction("GetGroup", new { userId = item.UserId, id = item.Id }, item);
+            return Conflict();
         }
 
         // DELETE: api/Groups/5
@@ -115,22 +104,14 @@ namespace AddressBook.Controllers
         public async Task<ActionResult<Group>> DeleteGroup(int userId, int id)
         {
             var user = _context.GetUser(userId);
-
-            if (user == null)
+            if (user != null)
             {
-                return NotFound();
+                var group = user.GroupInternal.Find(u => u.Id == id);
+                user.RemoveGroup(group);
+                await _context.SaveChangesAsync();               
+                return group;
             }
-
-            var item = user.RemoveGroup(id);
-
-            await _context.SaveChangesAsync();
-
-            return CreatedAtAction("GetUser", item.Succeeded);
-        }
-
-        private bool GroupExists(int userId, int id)
-        {
-            return _context.Users.Find(userId).Groups.Any(e => e.Id == id);
+            return NotFound();
         }
     }
 }
