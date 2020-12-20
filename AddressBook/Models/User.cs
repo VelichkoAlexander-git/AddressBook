@@ -74,7 +74,7 @@ namespace AddressBook.Models
 
         public Result<bool> AddAbonent(Abonent abonent)
         {
-            GroupAddressInternal.Add(abonent);
+            AbonentInternal.Add(abonent);
             return Result<bool>.Success(true);
         }
 

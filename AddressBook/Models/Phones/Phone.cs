@@ -37,6 +37,24 @@ namespace AddressBook.Models
             return Result<Phone>.Success(newPhone);
         }
 
+        public Result<bool> Update(GroupPhone groupPhone, string number)
+        {
+            var errors = new List<string>();
+
+            if (groupPhone is null) errors.Add(nameof(groupPhone));
+            if (string.IsNullOrEmpty(number)) errors.Add("Number is required");
+
+            if (errors.Any())
+            {
+                return Result<bool>.Fail(errors);
+            }
+
+            GroupPhone = groupPhone;
+            Number = number;
+
+            return Result<bool>.Success(true);
+        }
+
         public override string ToString()
         {
             return string.Format($"Phone | Num : {GroupPhone}, {Number}");

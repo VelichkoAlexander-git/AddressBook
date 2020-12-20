@@ -107,6 +107,11 @@ namespace AddressBook.Controllers
             if (user != null)
             {
                 var groupPhone = user.GroupPhoneInternal.Find(u => u.Id == id);
+                if (groupPhone == null)
+                {
+                    return NotFound();
+                }
+
                 user.RemoveGroupPhone(groupPhone);
                 await _context.SaveChangesAsync();
                 return groupPhone;

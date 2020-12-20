@@ -7,6 +7,7 @@ namespace AddressBook.DTO
 {
     public class AbonentGroupDto
     {
+        public int Id { get; set; }
         public int AbonentId { get; set; }
         public int GroupId { get; set; }
     }

@@ -133,10 +133,15 @@ namespace AddressBook.Controllers
             var user = _context.GetUser(userId);
             if (user != null)
             {
-                var Abonent = user.AbonentInternal.Find(u => u.Id == id);
-                user.RemoveAbonent(Abonent);
+                var abonent = user.AbonentInternal.Find(u => u.Id == id);
+                if (abonent == null)
+                {
+                    return NotFound();
+                }
+
+                user.RemoveAbonent(abonent);
                 await _context.SaveChangesAsync();
-                return Abonent;
+                return abonent;
             }
             return NotFound();
         }

@@ -107,6 +107,11 @@ namespace AddressBook.Controllers
             if (user != null)
             {
                 var groupAddress = user.GroupAddressInternal.Find(u => u.Id == id);
+                if (groupAddress == null)
+                {
+                    return NotFound();
+                }
+
                 user.RemoveGroupAddress(groupAddress);
                 await _context.SaveChangesAsync();
                 return groupAddress;

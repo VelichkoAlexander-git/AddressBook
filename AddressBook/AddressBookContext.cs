@@ -38,7 +38,8 @@ namespace AddressBook
             modelBuilder.Entity<Group>().ToTable("GroupsTable").HasKey(g => g.Id);
             modelBuilder.Entity<Group>().Ignore(g => g.Abonents);
 
-            modelBuilder.Entity<AbonentGroup>().ToTable("AbonentsGroups").HasKey(sg => new { sg.GroupId, sg.AbonentId });
+            modelBuilder.Entity<AbonentGroup>().ToTable("AbonentsGroups").HasKey(sg => sg.Id);
+            //modelBuilder.Entity<AbonentGroup>().ToTable("AbonentsGroups").HasKey(sg => new { sg.GroupId, sg.AbonentId });
             modelBuilder.Entity<AbonentGroup>().HasOne(sg => sg.Abonent).WithMany(s => s.GroupInternal).OnDelete(DeleteBehavior.NoAction);
             modelBuilder.Entity<AbonentGroup>().HasOne(sg => sg.Group).WithMany(s => s.AbonentGroups).OnDelete(DeleteBehavior.NoAction);
 

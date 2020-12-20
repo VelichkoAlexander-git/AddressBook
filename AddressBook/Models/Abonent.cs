@@ -104,6 +104,25 @@ namespace AddressBook.Models
             PhoneInternal.Add(result.Value);
             return Result<bool>.Success(true);
         }
+        public Result<bool> AddPhone(Phone phone)
+        {
+            PhoneInternal.Add(phone);
+            return Result<bool>.Success(true);
+        }
+        public Result<bool> UpdatePhone(int id, GroupPhone groupPhone, string number)
+        {
+            var phone = PhoneInternal.FirstOrDefault(g => g.Id == id);
+            if (phone != null)
+            {
+                var updateResult = phone.Update(groupPhone, number);
+                if (!updateResult.Succeeded)
+                {
+                    return Result<bool>.Fail(updateResult.Errors);
+                }
+                return Result<bool>.Success(true);
+            }
+            return Result<bool>.Fail("Phone not found");
+        }
         public Result<bool> RemovePhone(Phone phoneToDelete)
         {
             var errors = new List<string>();
@@ -134,6 +153,25 @@ namespace AddressBook.Models
             var result = Address.Create(groupAddress, information);
             AddressInternal.Add(result.Value);
             return Result<bool>.Success(true);
+        }
+        public Result<bool> AddAddress(Address address)
+        {
+            AddressInternal.Add(address);
+            return Result<bool>.Success(true);
+        }
+        public Result<bool> UpdateAddress(int id, GroupAddress groupAddress, string information)
+        {
+            var address = AddressInternal.FirstOrDefault(g => g.Id == id);
+            if (address != null)
+            {
+                var updateResult = address.Update(groupAddress, information);
+                if (!updateResult.Succeeded)
+                {
+                    return Result<bool>.Fail(updateResult.Errors);
+                }
+                return Result<bool>.Success(true);
+            }
+            return Result<bool>.Fail("Address not found");
         }
         public Result<bool> RemoveAddress(Address addressToDelete)
         {

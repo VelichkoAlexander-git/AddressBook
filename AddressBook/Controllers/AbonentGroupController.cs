@@ -31,7 +31,7 @@ namespace AddressBook.Controllers
         {
             var user = _context.GetUser(userId);
             var abonent = user.AbonentInternal.Find(a => a.Id == abonentId);
-            List<AbonentGroupDto> item = abonent.GroupInternal.Select(ag => new AbonentGroupDto() { AbonentId = ag.AbonentId, GroupId = ag.GroupId }).ToList();
+            List<AbonentGroupDto> item = abonent.GroupInternal.Select(ag => new AbonentGroupDto() { Id = ag.Id, AbonentId = ag.AbonentId, GroupId = ag.GroupId }).ToList();
 
             return item;
         }
@@ -46,13 +46,14 @@ namespace AddressBook.Controllers
                 var abonent = user.AbonentInternal.Find(a => a.Id == abonentId);
                 if (abonent != null)
                 {
-                    var abonentGroup = abonent.GroupInternal.FirstOrDefault(u => u. == id);
+                    var abonentGroup = abonent.GroupInternal.FirstOrDefault(u => u.Id == id);
                     if (abonentGroup != null)
                     {
                         AbonentGroupDto item = new AbonentGroupDto()
                         {
-                             AbonentId = abonentGroup.AbonentId,
-                             GroupId = abonentGroup.GroupId
+                            Id = abonentGroup.Id,
+                            AbonentId = abonentGroup.AbonentId,
+                            GroupId = abonentGroup.GroupId
                         };
 
                         return item;
@@ -68,32 +69,30 @@ namespace AddressBook.Controllers
         // To protect from overposting attacks, enable the specific properties you want to bind to, for
         // more details, see https://go.microsoft.com/fwlink/?linkid=2123754.
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutAbonentGroup(int id, AbonentGroup AbonentGroup)
+        public async Task<IActionResult> PutAbonentGroup(int userId, int abonentId, int id, AbonentGroupDto abonentGroupDto)
         {
-            if (id != AbonentGroup.GroupId)
+            if (id != abonentGroupDto.Id)
             {
                 return BadRequest();
             }
 
-            _context.Entry(AbonentGroup).State = EntityState.Modified;
-
-            try
+            var user = _context.GetUser(userId);
+            if (user != null)
             {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!AbonentGroupExists(id))
+                var abonent = user.GroupInternal.Find(u => u.Id == id);
+                if (abonent != null)
                 {
-                    return NotFound();
+                    var group = abonent.UpdateAbonentGroup(id, abonentGroupDto.AbonentId, abonentGroupDto.GroupId);
+                    if (group.Succeeded)
+                    {
+                        await _context.SaveChangesAsync();
+                        return Ok();
+                    }
+                    return BadRequest(group.Errors);
                 }
-                else
-                {
-                    throw;
-                }
+                return BadRequest("User -> Abonent not found");
             }
-
-            return NoContent();
+            return BadRequest("User not found");
         }
 
         // POST: api/AbonentGroups
@@ -136,11 +135,6 @@ namespace AddressBook.Controllers
             await _context.SaveChangesAsync();
 
             return AbonentGroup;
-        }
-
-        private bool AbonentGroupExists(int id)
-        {
-            return _context.AbonentGroup.Any(e => e.GroupId == id);
         }
     }
 }

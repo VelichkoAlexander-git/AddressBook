@@ -107,6 +107,11 @@ namespace AddressBook.Controllers
             if (user != null)
             {
                 var group = user.GroupInternal.Find(u => u.Id == id);
+                if (group == null)
+                {
+                    return NotFound();
+                }
+
                 user.RemoveGroup(group);
                 await _context.SaveChangesAsync();               
                 return group;

@@ -7,6 +7,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using AddressBook;
 using AddressBook.Models;
+using AddressBook.BL;
+using AddressBook.DTO;
 
 namespace AddressBook.Controllers
 {
@@ -15,96 +17,139 @@ namespace AddressBook.Controllers
     public class AddressesController : ControllerBase
     {
         private readonly AddressBookContext _context;
+        private readonly ManageAddressService _service;
 
-        public AddressesController(AddressBookContext context)
+        public AddressesController(AddressBookContext context, ManageAddressService service)
         {
             _context = context;
+            _service = service;
         }
 
         // GET: api/Addresses
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Address>>> GetAddress()
+        public async Task<ActionResult<IEnumerable<AddressDto>>> GetAddress(int userId, int abonentId)
         {
-            return await _context.Address.ToListAsync();
+            var user = _context.GetUser(userId);
+            var abonent = user.AbonentInternal.Find(a => a.Id == abonentId);
+            List<AddressDto> item = abonent.AddressInternal.Select(a => new AddressDto() { Id = a.Id, AbonentId = a.AbonentId, GroupAddressId = a.GroupAddressId, Information = a.Information }).ToList();
+
+            return item;
         }
 
         // GET: api/Addresses/5
         [HttpGet("{id}")]
-        public async Task<ActionResult<Address>> GetAddress(int id)
+        public async Task<ActionResult<AddressDto>> GetAddress(int userId, int abonentId, int id)
         {
-            var address = await _context.Address.FindAsync(id);
-
-            if (address == null)
+            var user = _context.GetUser(userId);
+            if (user != null)
             {
+                var abonent = user.AbonentInternal.Find(a => a.Id == abonentId);
+                if (abonent != null)
+                {
+                    var address = abonent.AddressInternal.FirstOrDefault(u => u.Id == id);
+                    if (address != null)
+                    {
+                        AddressDto item = new AddressDto()
+                        {
+                            Id = address.Id,
+                            AbonentId = address.AbonentId,
+                            GroupAddressId = address.GroupAddressId,
+                            Information = address.Information
+                        };
+
+                        return item;
+                    }
+                    return NotFound();
+                }
                 return NotFound();
             }
-
-            return address;
+            return NotFound();
         }
 
         // PUT: api/Addresses/5
         // To protect from overposting attacks, enable the specific properties you want to bind to, for
         // more details, see https://go.microsoft.com/fwlink/?linkid=2123754.
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutAddress(int id, Address address)
+        public async Task<IActionResult> PutAddress(int userId, int abonentId, int id, AddressDto addressDto)
         {
-            if (id != address.Id)
+            if (id != addressDto.Id)
             {
                 return BadRequest();
             }
 
-            _context.Entry(address).State = EntityState.Modified;
-
-            try
+            var user = _context.GetUser(userId);
+            if (user != null)
             {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!AddressExists(id))
+                var abonent = user.AbonentInternal.Find(u => u.Id == abonentId);
+                if (abonent != null)
                 {
-                    return NotFound();
+                    var groupAddress = user.GroupAddressInternal.Find(gp => gp.Id == addressDto.GroupAddressId);
+                    if (groupAddress != null || addressDto.GroupAddressId == null)
+                    {
+                        var address = abonent.UpdateAddress(id, groupAddress, addressDto.Information);
+                        if (address.Succeeded)
+                        {
+                            await _context.SaveChangesAsync();
+                            return Ok();
+                        }
+                        return BadRequest(address.Errors);
+                    }
+                    return BadRequest("User -> GroupAddress not found");
                 }
-                else
-                {
-                    throw;
-                }
+                return BadRequest("User -> Abonent not found");
             }
-
-            return NoContent();
+            return BadRequest("User not found");
         }
 
         // POST: api/Addresses
         // To protect from overposting attacks, enable the specific properties you want to bind to, for
         // more details, see https://go.microsoft.com/fwlink/?linkid=2123754.
         [HttpPost]
-        public async Task<ActionResult<Address>> PostAddress(Address address)
+        public async Task<ActionResult<Address>> PostAddress(int userId, int abonentId, AddressDto addressDto)
         {
-            _context.Address.Add(address);
-            await _context.SaveChangesAsync();
-
-            return CreatedAtAction("GetAddress", new { id = address.Id }, address);
+            var user = _context.GetUser(userId);
+            if (user != null)
+            {
+                var abonent = user.AbonentInternal.Find(u => u.Id == abonentId);
+                if (abonent != null)
+                {
+                    if (!abonent.AddressInternal.Any(p => p.Information == addressDto.Information))
+                    {
+                        addressDto.AbonentId = abonentId;
+                        await _service.AddAddressAsync(userId, addressDto);
+                        return CreatedAtAction("GetAddress", new { userId = userId, abonentId = addressDto.AbonentId, id = addressDto.Id }, addressDto);
+                    }
+                    return Conflict();
+                }
+                return BadRequest("User -> Abonent not found");
+            }
+            return BadRequest("User not found");
         }
 
         // DELETE: api/Addresses/5
         [HttpDelete("{id}")]
-        public async Task<ActionResult<Address>> DeleteAddress(int id)
+        public async Task<ActionResult<Address>> DeleteAddress(int userId, int abonentId, int id)
         {
-            var address = await _context.Address.FindAsync(id);
-            if (address == null)
+            var user = _context.GetUser(userId);
+            if (user != null)
             {
-                return NotFound();
+                var abonent = user.AbonentInternal.Find(u => u.Id == abonentId);
+                if (abonent != null)
+                {
+                    var address = abonent.AddressInternal.FirstOrDefault(u => u.Id == id);
+                    if (address == null)
+                    {
+                        return NotFound();
+                    }
+
+                    abonent.RemoveAddress(address);
+                    await _context.SaveChangesAsync();
+
+                    return address;
+                }
+                return BadRequest("User -> Abonent not found");
             }
-
-            _context.Address.Remove(address);
-            await _context.SaveChangesAsync();
-
-            return address;
-        }
-
-        private bool AddressExists(int id)
-        {
-            return _context.Address.Any(e => e.Id == id);
+            return BadRequest("User not found");
         }
     }
 }
