@@ -189,37 +189,40 @@ namespace AddressBook.Models
             return Result<bool>.Success(true);
         }
 
-        public Result<bool> AddGroup(string name)
+        public Result<bool> AddGroup(AbonentGroup abonentGroup)
+        {
+            GroupInternal.Add(abonentGroup);
+            return Result<bool>.Success(true);
+        }
+        public Result<bool> RemoveGroup(AbonentGroup abonentGroupToDelete)
         {
             var errors = new List<string>();
 
-            if (Groups.Any(group => group.Name.Equals(name, StringComparison.OrdinalIgnoreCase))) errors.Add("This group already exists");
+            if (abonentGroupToDelete is null) errors.Add(nameof(abonentGroupToDelete));
 
             if (errors.Any())
             {
                 return Result<bool>.Fail(errors);
             }
 
-            var result = Group.Create(name);
-            //GroupInternal.Add(result.Value);
+            GroupInternal.Remove(abonentGroupToDelete);
             return Result<bool>.Success(true);
         }
-        public Result<bool> RemoveGroup(Group groupToDelete)
+        public Result<bool> UpdateAbonentGroup(int id, Group group)
         {
-            var errors = new List<string>();
-
-            if (groupToDelete is null) errors.Add(nameof(groupToDelete));
-            if (Groups.All(group => !group.Name.Equals(groupToDelete.Name, StringComparison.OrdinalIgnoreCase))) errors.Add("Not exists");
-
-            if (errors.Any())
+            var address = GroupInternal.FirstOrDefault(g => g.Id == id);
+            if (address != null)
             {
-                return Result<bool>.Fail(errors);
+                var updateResult = address.Update(this, group);
+                if (!updateResult.Succeeded)
+                {
+                    return Result<bool>.Fail(updateResult.Errors);
+                }
+                return Result<bool>.Success(true);
             }
-
-            //GroupInternal.Remove(groupToDelete);
-            return Result<bool>.Success(true);
+            return Result<bool>.Fail("Address not found");
         }
-
+        
         public override string ToString()
         {
             StringBuilder sb = new StringBuilder();

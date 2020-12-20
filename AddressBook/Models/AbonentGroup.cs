@@ -13,12 +13,12 @@ namespace AddressBook.Models
         public int GroupId { get; protected set; }
         public virtual Group Group { get; protected set; }
 
-        public static Result<AbonentGroup> Create(int abonentId, int groupId)
+        public static Result<AbonentGroup> Create(Abonent abonent, Group group)
         {
             var errors = new List<string>();
 
-            if (abonentId < 0) errors.Add("abonentId < 0");
-            if (groupId < 0) errors.Add("groupId < 0");
+            if (abonent is null) errors.Add(nameof(abonent));
+            if (group is null) errors.Add(nameof(group));
 
             if (errors.Any())
             {
@@ -27,10 +27,32 @@ namespace AddressBook.Models
 
             var newAbonentGroup = new AbonentGroup
             {
-                AbonentId = abonentId,
-                GroupId = groupId
+                Group = group,
+                GroupId = group.Id,
+                Abonent = abonent,
+                AbonentId = abonent.Id
             };
             return Result<AbonentGroup>.Success(newAbonentGroup);
+        }
+
+        public Result<bool> Update(Abonent abonent, Group group)
+        {
+            var errors = new List<string>();
+
+            if (abonent is null) errors.Add(nameof(abonent));
+            if (group is null) errors.Add(nameof(group));
+
+            if (errors.Any())
+            {
+                return Result<bool>.Fail(errors);
+            }
+
+            Group = group;
+            GroupId = group.Id;
+            Abonent = abonent;
+            AbonentId = abonent.Id;
+
+            return Result<bool>.Success(true);
         }
     }
 }

@@ -79,16 +79,22 @@ namespace AddressBook.Controllers
             var user = _context.GetUser(userId);
             if (user != null)
             {
-                var abonent = user.GroupInternal.Find(u => u.Id == id);
+                var abonent = user.AbonentInternal.Find(u => u.Id == abonentId);
                 if (abonent != null)
                 {
-                    var group = abonent.UpdateAbonentGroup(id, abonentGroupDto.AbonentId, abonentGroupDto.GroupId);
-                    if (group.Succeeded)
+                    var group = user.GroupInternal.Find(g => g.Id == abonentGroupDto.GroupId);
+                    if (group == null)
+                    {
+                        return BadRequest("User -> Group not found");
+                    }
+
+                    var abonentGroup = abonent.UpdateAbonentGroup(id, group);
+                    if (abonentGroup.Succeeded)
                     {
                         await _context.SaveChangesAsync();
                         return Ok();
                     }
-                    return BadRequest(group.Errors);
+                    return BadRequest(abonentGroup.Errors);
                 }
                 return BadRequest("User -> Abonent not found");
             }
@@ -99,42 +105,51 @@ namespace AddressBook.Controllers
         // To protect from overposting attacks, enable the specific properties you want to bind to, for
         // more details, see https://go.microsoft.com/fwlink/?linkid=2123754.
         [HttpPost]
-        public async Task<ActionResult<AbonentGroup>> PostAbonentGroup(AbonentGroup AbonentGroup)
+        public async Task<ActionResult<AbonentGroup>> PostAbonentGroup(int userId, int abonentId, AbonentGroupDto abonentGroup)
         {
-            _context.AbonentGroup.Add(AbonentGroup);
-            try
+            var user = _context.GetUser(userId);
+            if (user != null)
             {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateException)
-            {
-                if (AbonentGroupExists(AbonentGroup.GroupId))
+                var abonent = user.AbonentInternal.Find(u => u.Id == abonentId);
+                if (abonent != null)
                 {
+                    if (!abonent.GroupInternal.Any(p => p.GroupId == abonentGroup.GroupId))
+                    {
+                        abonentGroup.AbonentId = abonentId;
+                        await _service.AddAbonentGroupAsync(userId, abonentGroup);
+                        return CreatedAtAction("GetAbonentGroup", new { userId = userId, abonentId = abonentGroup.AbonentId, id = abonentGroup.Id }, abonentGroup);
+                    }
                     return Conflict();
                 }
-                else
-                {
-                    throw;
-                }
+                return BadRequest("User -> Abonent not found");
             }
-
-            return CreatedAtAction("GetAbonentGroup", new { id = AbonentGroup.GroupId }, AbonentGroup);
+            return BadRequest("User not found");
         }
 
         // DELETE: api/AbonentGroups/5
         [HttpDelete("{id}")]
-        public async Task<ActionResult<AbonentGroup>> DeleteAbonentGroup(int id)
+        public async Task<ActionResult<AbonentGroup>> DeleteAbonentGroup(int userId, int abonentId, int id)
         {
-            var AbonentGroup = await _context.AbonentGroup.FindAsync(id);
-            if (AbonentGroup == null)
+            var user = _context.GetUser(userId);
+            if (user != null)
             {
-                return NotFound();
+                var abonent = user.AbonentInternal.Find(u => u.Id == abonentId);
+                if (abonent != null)
+                {
+                    var abonentGroup = abonent.GroupInternal.FirstOrDefault(u => u.Id == id);
+                    if (abonentGroup == null)
+                    {
+                        return NotFound();
+                    }
+
+                    abonent.RemoveGroup(abonentGroup);
+                    await _context.SaveChangesAsync();
+
+                    return abonentGroup;
+                }
+                return BadRequest("User -> Abonent not found");
             }
-
-            _context.AbonentGroup.Remove(AbonentGroup);
-            await _context.SaveChangesAsync();
-
-            return AbonentGroup;
+            return BadRequest("User not found");
         }
     }
 }
