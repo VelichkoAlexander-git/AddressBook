@@ -29,15 +29,21 @@ namespace AddressBook.BL
             return Result<bool>.Success(true);
         }
 
-        public async Task DeleteGroupPhoneAsync(User user, GroupPhone groupPhone)
+        public async Task<Result<bool>> DeleteGroupPhoneAsync(User user, GroupPhone groupPhone)
         {
-            user.RemoveGroupPhone(groupPhone);
-            await db.SaveChangesAsync();
+            if (!user.Abonents.Any(a => a.Phones.Any(p => p.GroupPhone == groupPhone)))
+            {
+                user.RemoveGroupPhone(groupPhone);
+                await db.SaveChangesAsync();
+                return Result<bool>.Success(true);
+            }
+            return Result<bool>.Success(false);
         }
 
-        internal Task UpdateGroupPhoneAsync(User user, int id, string name)
+        public async Task UpdateGroupPhoneAsync(User user, int id, string name)
         {
-            throw new NotImplementedException();
+            user.UpdateGroupPhone(id, name);
+            await db.SaveChangesAsync();
         }
     }
 }

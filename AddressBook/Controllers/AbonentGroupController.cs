@@ -141,7 +141,7 @@ namespace AddressBook.Controllers
                     var abonentGroup = abonent.Groups.FirstOrDefault(u => u.Id == abonent.GetGroupId(id));
                     if (abonentGroup == null)
                     {
-                        await _abonentGroupServiceService.DeleteAbonentGroupAsync(abonent, abonentGroup);
+                        await _abonentGroupServiceService.DeleteAbonentGroupAsync(user, abonent, abonentGroup);
                         return abonentGroup;
                     }
                     return NotFound();

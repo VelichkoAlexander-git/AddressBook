@@ -28,10 +28,15 @@ namespace AddressBook.BL
             return Result<bool>.Success(true);
         }
 
-        public async Task DeleteAbonentGroupAsync(Abonent abonent, Group abonentGroup)
+        public async Task<Result<bool>> DeleteAbonentGroupAsync(User user, Abonent abonent, Group abonentGroup)
         {
-            abonent.RemoveGroup(abonentGroup);
-            await db.SaveChangesAsync();
+            if (!user.Abonents.Any(a => a.Groups == abonentGroup))
+            {
+                abonent.RemoveGroup(abonentGroup);
+                await db.SaveChangesAsync();
+                return Result<bool>.Success(true);
+            }
+            return Result<bool>.Success(false);
         }
 
         public async Task UpdateAbonentGroupAsync(Abonent abonent, int id, Group group)
