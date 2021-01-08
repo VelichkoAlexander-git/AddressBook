@@ -16,21 +16,21 @@ namespace AddressBook.Controllers
     [ApiController]
     public class GroupPhonesController : ControllerBase
     {
-        private readonly AddressBookContext _context;
-        private readonly ManageGroupPhoneService _service;
+        private readonly ManageUsersService _userService;
+        private readonly ManageGroupPhoneService _groupPhoneService;
 
-        public GroupPhonesController(AddressBookContext context, ManageGroupPhoneService service)
+        public GroupPhonesController(ManageUsersService userService, ManageGroupPhoneService groupPhoneService)
         {
-            _context = context;
-            _service = service;
+            _userService = userService;
+            _groupPhoneService = groupPhoneService;
         }
 
         // GET: api/GroupPhones
         [HttpGet]
         public async Task<ActionResult<IEnumerable<GroupPhoneDto>>> GetGroupPhone(int userId)
         {
-            var user = _context.GetUser(userId);
-            List<GroupPhoneDto> item = user.GroupPhoneInternal.Select(u => new GroupPhoneDto() { Id = u.Id, UserId = u.UserId, Name = u.Name }).ToList();
+            var user = _userService.GetUser(userId);
+            List<GroupPhoneDto> item = user.GroupPhones.Select(u => new GroupPhoneDto() { Id = u.Id, UserId = u.UserId, Name = u.Name }).ToList();
 
             return item;
         }
@@ -39,10 +39,10 @@ namespace AddressBook.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<GroupPhoneDto>> GetGroupPhone(int userId, int id)
         {
-            var user = _context.GetUser(userId);
+            var user = _userService.GetUser(userId);
             if (user != null)
             {
-                var groupPhone = user.GroupPhoneInternal.Find(u => u.Id == id);
+                var groupPhone = user.GroupPhones.FirstOrDefault(u => u.Id == id);
                 if (groupPhone != null)
                 {
                     GroupPhoneDto item = new GroupPhoneDto()
@@ -63,60 +63,66 @@ namespace AddressBook.Controllers
         // To protect from overposting attacks, enable the specific properties you want to bind to, for
         // more details, see https://go.microsoft.com/fwlink/?linkid=2123754.
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutGroupPhone(int userId, int id, GroupPhoneDto groupPhoneDto)
+        public async Task<IActionResult> UpdateGroupPhone(int userId, int id, GroupPhoneDto groupPhoneDto)
         {
             if (id != groupPhoneDto.Id)
             {
                 return BadRequest();
             }
 
-            var user = _context.GetUser(userId);
+            var user = _userService.GetUser(userId);
             if (user != null)
             {
-                var groupPhone = user.UpdateGroupPhone(id, groupPhoneDto.Name);
-                if (groupPhone.Succeeded)
+                var groupPhone = user.GroupPhones.FirstOrDefault(gp => gp.Id == id);
+                if (groupPhone != null)
                 {
-                    await _context.SaveChangesAsync();
-                    return Ok();
+                    if (!user.Groups.Any(g => g.Name == groupPhoneDto.Name))
+                    {
+                        await _groupPhoneService.UpdateGroupPhoneAsync(user, id, groupPhoneDto.Name);
+                        return Ok();
+                    }
+                    return Conflict();
                 }
-                return BadRequest(groupPhone.Errors);
+                return BadRequest("User -> GroupPhone not found");
             }
-            return BadRequest("Group phone not found");
+            return BadRequest("User not found");
         }
 
         // POST: api/GroupPhones
         // To protect from overposting attacks, enable the specific properties you want to bind to, for
         // more details, see https://go.microsoft.com/fwlink/?linkid=2123754.
         [HttpPost]
-        public async Task<ActionResult<GroupPhone>> PostGroupPhone(int userId, GroupPhoneDto groupPhone)
+        public async Task<ActionResult<GroupPhone>> AddGroupPhone(int userId, GroupPhoneDto groupPhone)
         {
-            if (!_context.Users.Find(userId).Groups.Any(g => g.Name == groupPhone.Name))
+            var user = _userService.GetUser(userId);
+            if (user != null)
             {
-                groupPhone.UserId = userId;
-                await _service.AddGroupPhoneAsync(groupPhone);
-                return CreatedAtAction("GetGroupPhone", new { userId = groupPhone.UserId, id = groupPhone.Id }, groupPhone);
+                if (!user.Groups.Any(g => g.Name == groupPhone.Name))
+                {
+                    await _groupPhoneService.AddGroupPhoneAsync(user, groupPhone.Name);
+                    return CreatedAtAction("GetGroupPhone", new { userId = groupPhone.UserId, id = groupPhone.Id }, groupPhone);
+                }
+                return Conflict();
             }
-            return Conflict();
+            return BadRequest("User not found");
         }
 
         // DELETE: api/GroupPhones/5
         [HttpDelete("{id}")]
         public async Task<ActionResult<GroupPhone>> DeleteGroupPhone(int userId, int id)
         {
-            var user = _context.GetUser(userId);
+            var user = _userService.GetUser(userId);
             if (user != null)
             {
-                var groupPhone = user.GroupPhoneInternal.Find(u => u.Id == id);
-                if (groupPhone == null)
+                var groupPhone = user.GroupPhones.FirstOrDefault(u => u.Id == id);
+                if (groupPhone != null)
                 {
-                    return NotFound();
+                    await _groupPhoneService.DeleteGroupPhoneAsync(user, groupPhone);
+                    return groupPhone;
                 }
-
-                user.RemoveGroupPhone(groupPhone);
-                await _context.SaveChangesAsync();
-                return groupPhone;
+                return BadRequest("User -> GroupPhone not found");
             }
-            return NotFound();
+            return BadRequest("User not found");
         }
     }
 }

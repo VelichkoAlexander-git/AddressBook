@@ -15,20 +15,29 @@ namespace AddressBook.BL
         {
             db = GroupContext;
         }
-        public async Task<Result<bool>> AddGroupPhoneAsync(GroupPhoneDto groupPhone)
+        public async Task<Result<bool>> AddGroupPhoneAsync(User user, string name)
         {
-            var newGroupPhone = GroupPhone.Create(groupPhone.Name);
+            var newGroupPhone = GroupPhone.Create(name);
             if (!newGroupPhone.Succeeded)
             {
                 return Result<bool>.Success(false);
             }
 
-            var user = db.GetUser(groupPhone.UserId);
             user.AddGroupPhone(newGroupPhone.Value);
 
             await db.SaveChangesAsync();
-
             return Result<bool>.Success(true);
+        }
+
+        public async Task DeleteGroupPhoneAsync(User user, GroupPhone groupPhone)
+        {
+            user.RemoveGroupPhone(groupPhone);
+            await db.SaveChangesAsync();
+        }
+
+        internal Task UpdateGroupPhoneAsync(User user, int id, string name)
+        {
+            throw new NotImplementedException();
         }
     }
 }

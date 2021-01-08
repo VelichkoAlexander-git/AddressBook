@@ -15,32 +15,29 @@ namespace AddressBook.BL
         {
             db = GroupContext;
         }
-        public async Task<Result<bool>> AddAbonentGroupAsync(int userId, AbonentGroupDto abonentGroupDto)
+        public async Task<Result<bool>> AddAbonentGroupAsync(Abonent abonent, Group group)
         {
-            var user = db.GetUser(userId);
-
-            var group = user.GroupInternal.Find(g => g.Id == abonentGroupDto.GroupId);
-            if (group == null)
-            {
-                return Result<bool>.Success(false);
-            }
-
-            var abonent = user.AbonentInternal.Find(a => a.Id == abonentGroupDto.AbonentId);
-            if (abonent == null)
-            {
-                return Result<bool>.Success(false);
-            }
-
             var newAddress = AbonentGroup.Create(abonent, group);
             if (!newAddress.Succeeded)
             {
                 return Result<bool>.Success(false);
             }
 
-                abonent.AddGroup(newAddress.Value);
-                await db.SaveChangesAsync();
+            abonent.AddGroup(newAddress.Value);
+            await db.SaveChangesAsync();
+            return Result<bool>.Success(true);
+        }
 
-                return Result<bool>.Success(true);
+        public async Task DeleteAbonentGroupAsync(Abonent abonent, Group abonentGroup)
+        {
+            abonent.RemoveGroup(abonentGroup);
+            await db.SaveChangesAsync();
+        }
+
+        public async Task UpdateAbonentGroupAsync(Abonent abonent, int id, Group group)
+        {
+            abonent.UpdateAbonentGroup(id, group);
+            await db.SaveChangesAsync();
         }
     }
 }

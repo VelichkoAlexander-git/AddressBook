@@ -16,21 +16,21 @@ namespace AddressBook.Controllers
     [ApiController]
     public class AbonentsController : ControllerBase
     {
-        private readonly AddressBookContext _context;
-        private readonly ManageAbonentService _service;
+        private readonly ManageUsersService _userService;
+        private readonly ManageAbonentService _abonentService;
 
-        public AbonentsController(AddressBookContext context, ManageAbonentService service)
+        public AbonentsController(ManageUsersService userService, ManageAbonentService service)
         {
-            _context = context;
-            _service = service;
+            _userService = userService;
+            _abonentService = service;
         }
 
         // GET: api/Abonents
         [HttpGet]
         public async Task<ActionResult<IEnumerable<AbonentDto>>> GetAbonent(int userId)
         {
-            var user = _context.GetUser(userId);
-            List<AbonentDto> item = user.AbonentInternal.Select(u => new AbonentDto()
+            var user = _userService.GetUser(userId);
+            List<AbonentDto> item = user.Abonents.Select(u => new AbonentDto()
             {
                 Id = u.Id,
                 UserId = u.UserId,
@@ -50,10 +50,10 @@ namespace AddressBook.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<AbonentDto>> GetAbonent(int userId, int id)
         {
-            var user = _context.GetUser(userId);
+            var user = _userService.GetUser(userId);
             if (user != null)
             {
-                var Abonent = user.AbonentInternal.Find(u => u.Id == id);
+                var Abonent = user.Abonents.FirstOrDefault(u => u.Id == id);
                 if (Abonent != null)
                 {
                     AbonentDto item = new AbonentDto()
@@ -80,31 +80,35 @@ namespace AddressBook.Controllers
         // To protect from overposting attacks, enable the specific properties you want to bind to, for
         // more details, see https://go.microsoft.com/fwlink/?linkid=2123754.
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutAbonent(int userId, int id, AbonentDto AbonentDto)
+        public async Task<IActionResult> UpdateAbonent(int userId, int id, AbonentDto AbonentDto)
         {
             if (id != AbonentDto.Id)
             {
                 return BadRequest();
             }
 
-            var user = _context.GetUser(userId);
+            var user = _userService.GetUser(userId);
             if (user != null)
             {
-                var Abonent = user.UpdateAbonent(id, 
-                                                       AbonentDto.FirstName, 
-                                                       AbonentDto.MiddleName, 
-                                                       AbonentDto.LastName,
-                                                       AbonentDto.Sex,
-                                                       AbonentDto.DateOfBirth,
-                                                       AbonentDto.Photo,
-                                                       AbonentDto.Mail
-                                                       );
-                if (Abonent.Succeeded)
+                var abonent = user.Abonents.FirstOrDefault(a => a.Id == id);
+                if (abonent != null)
                 {
-                    await _context.SaveChangesAsync();
-                    return Ok();
+                    if (!user.Abonents.Any(g => g.FirstName == AbonentDto.FirstName
+                                                                     && g.MiddleName == AbonentDto.MiddleName
+                                                                     && g.LastName == AbonentDto.LastName))
+                    {
+                        await _abonentService.UpdateAbonentAsync(user, id, AbonentDto.FirstName,
+                                                                           AbonentDto.MiddleName,
+                                                                           AbonentDto.LastName,
+                                                                           AbonentDto.DateOfBirth,
+                                                                           AbonentDto.Photo,
+                                                                           AbonentDto.Sex,
+                                                                           AbonentDto.Mail);
+                        return Ok();
+                    }
+                    return Conflict();
                 }
-                return BadRequest(Abonent.Errors);
+                return BadRequest("User -> Abonent not found");
             }
             return BadRequest("User not found");
         }
@@ -113,37 +117,45 @@ namespace AddressBook.Controllers
         // To protect from overposting attacks, enable the specific properties you want to bind to, for
         // more details, see https://go.microsoft.com/fwlink/?linkid=2123754.
         [HttpPost]
-        public async Task<ActionResult<AbonentDto>> PostAbonent(int userId, AbonentDto AbonentDto)
+        public async Task<ActionResult<AbonentDto>> AddAbonent(int userId, AbonentDto AbonentDto)
         {
-            if (!_context.Users.Find(userId).AbonentInternal.Any(g => g.FirstName == AbonentDto.FirstName
+            var user = _userService.GetUser(userId);
+            if (user != null)
+            {
+                if (!user.Abonents.Any(g => g.FirstName == AbonentDto.FirstName
                                                                  && g.MiddleName == AbonentDto.MiddleName
                                                                  && g.LastName == AbonentDto.LastName))
-            {
-                AbonentDto.UserId = userId;
-                await _service.AddAbonentAsync(AbonentDto);
-                return CreatedAtAction("GetAbonent", new { userId = AbonentDto.UserId, id = AbonentDto.Id }, AbonentDto);
+                {
+                    await _abonentService.AddAbonentAsync(user, AbonentDto.FirstName,
+                                                                AbonentDto.MiddleName,
+                                                                AbonentDto.LastName,
+                                                                AbonentDto.DateOfBirth,
+                                                                AbonentDto.Photo,
+                                                                AbonentDto.Sex,
+                                                                AbonentDto.Mail);
+                    return CreatedAtAction("GetAbonent", new { userId = userId, id = AbonentDto.Id }, AbonentDto);
+                }
+                return Conflict();
             }
-            return Conflict();
+            return BadRequest("User not found");
         }
 
         // DELETE: api/Abonents/5
         [HttpDelete("{id}")]
         public async Task<ActionResult<Abonent>> DeleteAbonent(int userId, int id)
         {
-            var user = _context.GetUser(userId);
+            var user = _userService.GetUser(userId);
             if (user != null)
             {
-                var abonent = user.AbonentInternal.Find(u => u.Id == id);
+                var abonent = user.Abonents.ElementAt(id);
                 if (abonent == null)
                 {
-                    return NotFound();
+                    await _abonentService.DeleteAbonentAsync(user, abonent);
+                    return abonent;
                 }
-
-                user.RemoveAbonent(abonent);
-                await _context.SaveChangesAsync();
-                return abonent;
+                return BadRequest("User -> Abonent not found");
             }
-            return NotFound();
+            return BadRequest("User not found");
         }
     }
 }

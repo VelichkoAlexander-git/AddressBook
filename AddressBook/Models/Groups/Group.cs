@@ -14,7 +14,7 @@ namespace AddressBook.Models
         public virtual User User { get; protected set; }
 
         public IEnumerable<Abonent> Abonents => AbonentGroups.Select(sg => sg.Abonent);
-        internal ICollection<AbonentGroup> AbonentGroups { get; set; }
+        protected virtual ICollection<AbonentGroup> AbonentGroups { get; set; }
         protected Group()
         { }
 

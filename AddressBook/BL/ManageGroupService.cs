@@ -15,20 +15,32 @@ namespace AddressBook.BL
         {
             db = GroupContext;
         }
-        public async Task<Result<bool>> AddGroupAsync(GroupDto group)
+        public async Task<Result<bool>> AddGroupAsync(User user, string name)
         {
-            var newGroup = Group.Create(group.Name);
+            var newGroup = Group.Create(name);
             if (!newGroup.Succeeded)
             {
                 return Result<bool>.Success(false);
             }
 
-            var user = db.GetUser(group.UserId);
             user.AddGroup(newGroup.Value);
 
             await db.SaveChangesAsync();
-
             return Result<bool>.Success(true);
+        }
+
+        public async Task DeleteGroupAsync(User user, Group group)
+        {
+            user.RemoveGroup(group);
+
+            await db.SaveChangesAsync();
+        }
+
+        public async Task UpdateGroupAsync(User user, int id, string name)
+        {
+            user.UpdateGroup(id, name);
+
+            await db.SaveChangesAsync();
         }
     }
 }

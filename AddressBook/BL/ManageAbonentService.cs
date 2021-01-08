@@ -15,29 +15,44 @@ namespace AddressBook.BL
         {
             db = GroupContext;
         }
-        public async Task<Result<bool>> AddAbonentAsync(AbonentDto abonentDto)
+        public async Task<Result<bool>> AddAbonentAsync(User user, string firstName, string middleName, string lastName, DateTime? dateOfBirth, byte[] photo, Sex sex, string mail)
         {
-            var user = db.GetUser(abonentDto.UserId);
-            if (user != null)
+            var newAbonent = Abonent.Create(firstName,
+                            middleName,
+                            lastName,
+                            dateOfBirth,
+                            photo,
+                            sex,
+                            mail);
+            if (newAbonent.Succeeded)
             {
-                var newAbonent = Abonent.Create(abonentDto.FirstName,
-                                abonentDto.MiddleName,
-                                abonentDto.LastName,
-                                abonentDto.DateOfBirth,
-                                abonentDto.Photo,
-                                abonentDto.Sex,
-                                abonentDto.Mail);
-                
-                if (newAbonent.Succeeded)
-                {
-                    user.AddAbonent(newAbonent.Value);
-                    await db.SaveChangesAsync();
-
-                    return Result<bool>.Success(true);
-                }
                 return Result<bool>.Success(false);
             }
-            return Result<bool>.Success(false);
+
+            user.AddAbonent(newAbonent.Value);
+            await db.SaveChangesAsync();
+            return Result<bool>.Success(true);
+        }
+
+        public Abonent GetAbonent(int UserId, int AbonentId)
+        {
+            var Abonent = db.Users.Find(UserId).Abonents.ToList().Find(s => s.Id == AbonentId);
+            db.Entry(Abonent).Collection(s => s.Addresses).Load();
+            db.Entry(Abonent).Collection(s => s.Phones).Load();
+            db.Entry(Abonent).Collection(s => s.Groups).Load();
+            return Abonent;
+        }
+
+        public async Task DeleteAbonentAsync(User user, Abonent abonent)
+        {
+            user.RemoveAbonent(abonent);
+            await db.SaveChangesAsync();
+        }
+
+        public async Task UpdateAbonentAsync(User user, int id, string firstName, string middleName, string lastName, DateTime? dateOfBirth, byte[] photo, Sex sex, string mail)
+        {
+            user.UpdateAbonent(id, firstName, middleName, lastName, sex, dateOfBirth, photo, mail);
+            await db.SaveChangesAsync();
         }
     }
 }

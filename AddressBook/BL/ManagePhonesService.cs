@@ -16,31 +16,32 @@ namespace AddressBook.BL
             db = GroupContext;
         }
 
-        public async Task<Result<bool>> AddPhoneAsync(int userId, PhoneDto phoneDto)
+        public async Task<Result<bool>> AddPhoneAsync(Abonent abonent, GroupPhone phoneGroup, string number)
         {
-            var user = db.GetUser(userId);
-
-            var phoneGroup = user.GroupPhoneInternal.Find(gp => gp.Id == phoneDto.GroupPhoneId);
-            if (phoneGroup == null)
-            {
-                return Result<bool>.Success(false);
-            }
-
-            var newPhone = Phone.Create(phoneGroup, phoneDto.Number);
+            var newPhone = Phone.Create(phoneGroup, number);
             if (!newPhone.Succeeded)
             {
                 return Result<bool>.Success(false);
             }
 
-            var abonent = user.AbonentInternal.Find(a => a.Id == phoneDto.AbonentId);
-            if (abonent != null)
-            {
-                abonent.AddPhone(newPhone.Value);
-                await db.SaveChangesAsync();
+            abonent.AddPhone(newPhone.Value);
+            await db.SaveChangesAsync();
 
-                return Result<bool>.Success(true);
-            }
-            return Result<bool>.Success(false);
+            return Result<bool>.Success(true);
+        }
+
+        public async Task DeletePhoneAsync(Abonent abonent, Phone phone)
+        {
+            abonent.RemovePhone(phone);
+
+            await db.SaveChangesAsync();
+        }
+
+        public async Task UpdatePhoneAsync(Abonent abonent, int phoneId, GroupPhone groupPhone, string number)
+        {
+            abonent.UpdatePhone(phoneId, groupPhone, number);
+
+            await db.SaveChangesAsync();
         }
     }
 }

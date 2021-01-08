@@ -16,22 +16,22 @@ namespace AddressBook.Controllers
     [ApiController]
     public class PhonesController : ControllerBase
     {
-        private readonly AddressBookContext _context;
-        private readonly ManagePhonesService _service;
+        private readonly ManageUsersService _userService;
+        private readonly ManagePhonesService _phoneService;
 
-        public PhonesController(AddressBookContext context, ManagePhonesService service)
+        public PhonesController(ManageUsersService userService, ManagePhonesService phoneService)
         {
-            _context = context;
-            _service = service;
+            _userService = userService;
+            _phoneService = phoneService;
         }
 
         // GET: api/Phones
         [HttpGet]
         public async Task<ActionResult<IEnumerable<PhoneDto>>> GetPhone(int userId, int abonentId)
         {
-            var user = _context.GetUser(userId);
-            var abonent = user.AbonentInternal.Find(a => a.Id == abonentId);
-            List<PhoneDto> item = abonent.PhoneInternal.Select(p => new PhoneDto() { Id = p.Id, AbonentId = p.AbonentId, GroupPhoneId = p.GroupPhoneId, Number = p.Number }).ToList();
+            var user = _userService.GetUser(userId);
+            var abonent = user.Abonents.FirstOrDefault(a => a.Id == abonentId);
+            List<PhoneDto> item = abonent.Phones.Select(p => new PhoneDto() { Id = p.Id, AbonentId = p.AbonentId, GroupPhoneId = p.GroupPhoneId, Number = p.Number }).ToList();
 
             return item;
         }
@@ -40,13 +40,13 @@ namespace AddressBook.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<PhoneDto>> GetPhone(int userId, int abonentId, int id)
         {
-            var user = _context.GetUser(userId);
+            var user = _userService.GetUser(userId);
             if (user != null)
             {
-                var abonent = user.AbonentInternal.Find(a => a.Id == abonentId);
+                var abonent = user.Abonents.FirstOrDefault(a => a.Id == abonentId);
                 if (abonent != null)
                 {
-                    var phone = abonent.PhoneInternal.FirstOrDefault(u => u.Id == id);
+                    var phone = abonent.Phones.FirstOrDefault(u => u.Id == id);
                     if (phone != null)
                     {
                         PhoneDto item = new PhoneDto()
@@ -70,31 +70,35 @@ namespace AddressBook.Controllers
         // To protect from overposting attacks, enable the specific properties you want to bind to, for
         // more details, see https://go.microsoft.com/fwlink/?linkid=2123754.
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutPhone(int userId, int abonentId, int id, PhoneDto phoneDto)
+        public async Task<IActionResult> UpdatePhone(int userId, int abonentId, int id, PhoneDto phoneDto)
         {
             if (id != phoneDto.Id)
             {
                 return BadRequest();
             }
 
-            var user = _context.GetUser(userId);
+            var user = _userService.GetUser(userId);
             if (user != null)
             {
-                var abonent = user.AbonentInternal.Find(u => u.Id == abonentId);
+                var abonent = user.Abonents.FirstOrDefault(u => u.Id == abonentId);
                 if (abonent != null)
                 {
-                    var groupPhone = user.GroupPhoneInternal.Find(gp => gp.Id == phoneDto.GroupPhoneId);
-                    if (groupPhone != null || phoneDto.GroupPhoneId == null)
+                    var phone = abonent.Phones.FirstOrDefault(p => p.Id == id);
+                    if (phone != null)
                     {
-                        var phone = abonent.UpdatePhone(id, groupPhone, phoneDto.Number);
-                        if (phone.Succeeded)
+                        if (!abonent.Phones.Any(p => p.Number == phoneDto.Number))
                         {
-                            await _context.SaveChangesAsync();
-                            return Ok();
+                            var groupPhone = user.GroupPhones.FirstOrDefault(gp => gp.Id == phoneDto.GroupPhoneId);
+                            if (groupPhone != null || phoneDto.GroupPhoneId == null)
+                            {
+                                await _phoneService.UpdatePhoneAsync(abonent, id, groupPhone, phoneDto.Number);
+                                return Ok();
+                            }
+                            return BadRequest("User -> GroupPhone not found");
                         }
-                        return BadRequest(phone.Errors);
+                        return Conflict();
                     }
-                    return BadRequest("User -> GroupPhone not found");
+                    return BadRequest("User -> Abonent -> Phone not found");
                 }
                 return BadRequest("User -> Abonent not found");
             }
@@ -105,19 +109,24 @@ namespace AddressBook.Controllers
         // To protect from overposting attacks, enable the specific properties you want to bind to, for
         // more details, see https://go.microsoft.com/fwlink/?linkid=2123754.
         [HttpPost]
-        public async Task<ActionResult<Phone>> PostPhone(int userId, int abonentId, PhoneDto phoneDto)
+        public async Task<ActionResult<Phone>> AddPhone(int userId, int abonentId, PhoneDto phoneDto)
         {
-            var user = _context.GetUser(userId);
+            var user = _userService.GetUser(userId);
             if (user != null)
             {
-                var abonent = user.AbonentInternal.Find(u => u.Id == abonentId);
+                var abonent = user.Abonents.FirstOrDefault(u => u.Id == abonentId);
                 if (abonent != null)
                 {
-                    if (!abonent.PhoneInternal.Any(p => p.Number == phoneDto.Number))
+                    if (!abonent.Phones.Any(p => p.Number == phoneDto.Number))
                     {
                         phoneDto.AbonentId = abonentId;
-                        await _service.AddPhoneAsync(userId, phoneDto);
-                        return CreatedAtAction("GetPhone", new { userId = userId, abonentId = phoneDto.AbonentId, id = phoneDto.Id }, phoneDto);
+                        var phoneGroup = user.GroupPhones.FirstOrDefault(gp => gp.Id == phoneDto.GroupPhoneId);
+                        if (phoneGroup != null)
+                        {
+                            await _phoneService.AddPhoneAsync(abonent, phoneGroup, phoneDto.Number);
+                            return CreatedAtAction("GetPhone", new { userId = userId, abonentId = phoneDto.AbonentId, id = phoneDto.Id }, phoneDto);
+                        }
+                        return BadRequest("User -> GroupPhones not found");
                     }
                     return Conflict();
                 }
@@ -130,22 +139,20 @@ namespace AddressBook.Controllers
         [HttpDelete("{id}")]
         public async Task<ActionResult<Phone>> DeletePhone(int userId, int abonentId, int id)
         {
-            var user = _context.GetUser(userId);
+            var user = _userService.GetUser(userId);
             if (user != null)
             {
-                var abonent = user.AbonentInternal.Find(u => u.Id == abonentId);
+                var abonent = user.Abonents.FirstOrDefault(u => u.Id == abonentId);
                 if (abonent != null)
                 {
-                    var phone = abonent.PhoneInternal.FirstOrDefault(u => u.Id == id);
-                    if (phone == null)
+                    var phone = abonent.Phones.FirstOrDefault(u => u.Id == id);
+                    if (phone != null)
                     {
-                        return NotFound();
+                        await _phoneService.DeletePhoneAsync(abonent, phone);
+
+                        return phone;
                     }
-
-                    abonent.RemovePhone(phone);
-                    await _context.SaveChangesAsync();
-
-                    return phone;
+                    return BadRequest("User -> Abonent -> Phone not found");
                 }
                 return BadRequest("User -> Abonent not found");
             }

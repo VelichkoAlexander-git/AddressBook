@@ -30,9 +30,9 @@ namespace AddressBook.Models
         public virtual User User { get; protected set; }
 
 
-        internal virtual ICollection<Phone> PhoneInternal { get; set; }
-        internal virtual ICollection<Address> AddressInternal { get; set; }
-        internal virtual ICollection<AbonentGroup> GroupInternal { get; set; }
+        protected virtual ICollection<Phone> PhoneInternal { get; set; }
+        protected virtual ICollection<Address> AddressInternal { get; set; }
+        protected virtual ICollection<AbonentGroup> GroupInternal { get; set; }
 
         protected Abonent()
         {
@@ -89,21 +89,6 @@ namespace AddressBook.Models
             return Result<bool>.Success(true);
         }
 
-        public Result<bool> AddPhone(GroupPhone groupPhone, string number)
-        {
-            var errors = new List<string>();
-
-            if (Phones.Any(phone => phone.Number.Equals(number, StringComparison.OrdinalIgnoreCase))) errors.Add("This number already exists");
-
-            if (errors.Any())
-            {
-                return Result<bool>.Fail(errors);
-            }
-
-            var result = Phone.Create(groupPhone, number);
-            PhoneInternal.Add(result.Value);
-            return Result<bool>.Success(true);
-        }
         public Result<bool> AddPhone(Phone phone)
         {
             PhoneInternal.Add(phone);
@@ -139,21 +124,6 @@ namespace AddressBook.Models
             return Result<bool>.Success(true);
         }
 
-        public Result<bool> AddAddress(GroupAddress groupAddress, string information)
-        {
-            var errors = new List<string>();
-
-            if (Addresses.Any(address => address.Information.Equals(information, StringComparison.OrdinalIgnoreCase))) errors.Add("This address already exists");
-
-            if (errors.Any())
-            {
-                return Result<bool>.Fail(errors);
-            }
-
-            var result = Address.Create(groupAddress, information);
-            AddressInternal.Add(result.Value);
-            return Result<bool>.Success(true);
-        }
         public Result<bool> AddAddress(Address address)
         {
             AddressInternal.Add(address);
@@ -194,18 +164,22 @@ namespace AddressBook.Models
             GroupInternal.Add(abonentGroup);
             return Result<bool>.Success(true);
         }
-        public Result<bool> RemoveGroup(AbonentGroup abonentGroupToDelete)
+        public Result<bool> RemoveGroup(Group groupToDelete)
         {
             var errors = new List<string>();
 
-            if (abonentGroupToDelete is null) errors.Add(nameof(abonentGroupToDelete));
+            if (groupToDelete is null) errors.Add(nameof(groupToDelete));
 
             if (errors.Any())
             {
                 return Result<bool>.Fail(errors);
             }
 
-            GroupInternal.Remove(abonentGroupToDelete);
+            var abonentGroup = GroupInternal.FirstOrDefault(ag => ag.Group == groupToDelete);
+            if (abonentGroup != null)
+            {
+                GroupInternal.Remove(abonentGroup);
+            }
             return Result<bool>.Success(true);
         }
         public Result<bool> UpdateAbonentGroup(int id, Group group)
@@ -222,18 +196,20 @@ namespace AddressBook.Models
             }
             return Result<bool>.Fail("Address not found");
         }
+
+        public int GetGroupId(int AbonentGroupId) => GroupInternal.FirstOrDefault(gi => gi.AbonentId == AbonentGroupId).GroupId;
         
         public override string ToString()
         {
             StringBuilder sb = new StringBuilder();
-            sb.AppendLine($"Name : {FirstName}");
-            sb.AppendLine($"Surname : {MiddleName}");
-            sb.AppendLine($"Patronymic : {LastName}");
-            sb.AppendLine($"Phones : {Phones}");
-            sb.AppendLine($"Addresses : {Addresses}");
-            sb.AppendLine($"Group : {Groups}");
-            sb.AppendLine($"Gender : {Sex}");
-            sb.AppendLine($"DateBirth : {DateOfBirth}");
+            sb.Append($"Name : {FirstName}");
+            sb.Append($"Surname : {MiddleName}");
+            sb.Append($"Patronymic : {LastName}");
+            sb.Append($"Phones : {Phones}");
+            sb.Append($"Addresses : {Addresses}");
+            sb.Append($"Group : {Groups}");
+            sb.Append($"Gender : {Sex}");
+            sb.Append($"DateBirth : {DateOfBirth}");
             sb.Append($"Mail : {Mail}");
 
             return sb.ToString();

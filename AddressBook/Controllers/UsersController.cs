@@ -38,7 +38,7 @@ namespace AddressBook.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<UserDto>> GetUser(int id)
         {
-            var user = _context.GetUser(id);
+            var user = _usersService.GetUser(id);
             if (user != null)
             {
                 UserDto item = new UserDto()
@@ -54,30 +54,34 @@ namespace AddressBook.Controllers
         }
 
         // PUT: api/Users/5
-        // To protect from overposting attacks, enable the specific properties you want to bind to, for
+        // To protect from overing attacks, enable the specific properties you want to bind to, for
         // more details, see https://go.microsoft.com/fwlink/?linkid=2123754.
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutUser(int id, UserDto userDto)
+        public async Task<IActionResult> UpdateUser(int id, UserDto userDto)
         {
             if (id != userDto.Id)
             {
                 return BadRequest();
             }
 
-            var user = _context.UpdateUser(id, userDto.Login, userDto.Password);
-            if (user.Succeeded)
+            var user = _usersService.GetUser(id);
+            if (user != null)
             {
-                await _context.SaveChangesAsync();
-                return Ok();
+                if (!_context.Users.Any(u => u.Login == userDto.Login))
+                {
+                    _usersService.UpdateUserAsync(user, userDto.Login, userDto.Password);
+                    return Ok();
+                }
+                return Conflict();
             }
-            return BadRequest(user.Errors);
+            return BadRequest("User not found");
         }
 
         // POST: api/Users
         // To protect from overposting attacks, enable the specific properties you want to bind to, for
         // more details, see https://go.microsoft.com/fwlink/?linkid=2123754.
         [HttpPost]
-        public async Task<ActionResult<User>> PostUser(UserDto user)
+        public async Task<ActionResult<User>> AddUser(UserDto user)
         {
             if (!_context.Users.Any(u => u.Login == user.Login))
             {
@@ -86,7 +90,6 @@ namespace AddressBook.Controllers
                 {
                     BadRequest(error);
                 }
-
                 return CreatedAtAction("GetUser", new { id = _context.Users.FirstAsync(u => u.Login == user.Login).Id }, user);
             }
             return Conflict();
@@ -96,7 +99,7 @@ namespace AddressBook.Controllers
         [HttpDelete("{id}")]
         public async Task<ActionResult<User>> DeleteUser(int id)
         {
-            var user = _context.GetUser(id);
+            var user = _usersService.GetUser(id);
             if (user != null)
             {
                 _context.Users.Remove(user);

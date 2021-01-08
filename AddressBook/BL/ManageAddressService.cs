@@ -16,31 +16,29 @@ namespace AddressBook.BL
             db = GroupContext;
         }
 
-        public async Task<Result<bool>> AddAddressAsync(int userId, AddressDto addressDto)
+        public async Task<Result<bool>> AddAddressAsync(Abonent abonent, GroupAddress groupAddress, string information)
         {
-            var user = db.GetUser(userId);
-
-            var addressGroup = user.GroupAddressInternal.Find(gp => gp.Id == addressDto.GroupAddressId);
-            if (addressGroup == null)
-            {
-                return Result<bool>.Success(false);
-            }
-
-            var newAddress = Address.Create(addressGroup, addressDto.Information);
+            var newAddress = Address.Create(groupAddress, information);
             if (!newAddress.Succeeded)
             {
                 return Result<bool>.Success(false);
             }
 
-            var abonent = user.AbonentInternal.Find(a => a.Id == addressDto.AbonentId);
-            if (abonent != null)
-            {
-                abonent.AddAddress(newAddress.Value);
-                await db.SaveChangesAsync();
+            abonent.AddAddress(newAddress.Value);
+            await db.SaveChangesAsync();
+            return Result<bool>.Success(true);
+        }
 
-                return Result<bool>.Success(true);
-            }
-            return Result<bool>.Success(false);
+        public async Task DeleteAddressAsync(Abonent abonent, Address address)
+        {
+            abonent.RemoveAddress(address);
+            await db.SaveChangesAsync();
+        }
+
+        public async Task UpdateAddressAsync(Abonent abonent, int id, GroupAddress addressGroup, string information)
+        {
+            abonent.UpdateAddress(id, addressGroup, information);
+            await db.SaveChangesAsync();
         }
     }
 }

@@ -56,21 +56,8 @@ namespace AddressBook.Models
         #endregion
 
         #region Abonent
-        internal List<Abonent> AbonentInternal { get; set; }
+        protected virtual List<Abonent> AbonentInternal { get; set; }
         public IEnumerable<Abonent> Abonents => AbonentInternal;
-        public Result<bool> AddAbonent(string firstName, string middleName, string lastName, DateTime? dateOfBirth, byte[] photo, Sex sex, string mail)
-        {
-            var errors = new List<string>();
-
-            if (errors.Any())
-            {
-                return Result<bool>.Fail(errors);
-            }
-
-            var result = Abonent.Create(firstName, middleName, lastName, dateOfBirth, photo, sex, mail);
-            AbonentInternal.Add(result.Value);
-            return Result<bool>.Success(true);
-        }
 
         public Result<bool> AddAbonent(Abonent abonent)
         {
@@ -110,21 +97,8 @@ namespace AddressBook.Models
         #endregion
 
         #region GroupAddress
-        internal List<GroupAddress> GroupAddressInternal { get; set; }
+        protected virtual List<GroupAddress> GroupAddressInternal { get; set; }
         public IEnumerable<GroupAddress> GroupAddresses => GroupAddressInternal;
-        public Result<bool> AddGroupAddress(string name)
-        {
-            var errors = new List<string>();
-
-            if (errors.Any())
-            {
-                return Result<bool>.Fail(errors);
-            }
-
-            var result = GroupAddress.Create(name);
-            GroupAddressInternal.Add(result.Value);
-            return Result<bool>.Success(true);
-        }
 
         public Result<bool> AddGroupAddress(GroupAddress groupAddress)
         {
@@ -164,21 +138,8 @@ namespace AddressBook.Models
         #endregion
 
         #region GroupPhone
-        internal List<GroupPhone> GroupPhoneInternal { get; set; }
+        protected virtual List<GroupPhone> GroupPhoneInternal { get; set; }
         public IEnumerable<GroupPhone> GroupPhones => GroupPhoneInternal;
-        public Result<bool> AddGroupPhone(string name)
-        {
-            var errors = new List<string>();
-
-            if (errors.Any())
-            {
-                return Result<bool>.Fail(errors);
-            }
-
-            var result = GroupPhone.Create(name);
-            GroupPhoneInternal.Add(result.Value);
-            return Result<bool>.Success(true);
-        }
 
         public Result<bool> AddGroupPhone(GroupPhone groupPhone)
         {
@@ -219,21 +180,9 @@ namespace AddressBook.Models
         #endregion
 
         #region Group
-        internal List<Group> GroupInternal { get; set; }
+        protected virtual List<Group> GroupInternal { get; set; }
         public IEnumerable<Group> Groups => GroupInternal;
-        public Result<bool> AddGroup(string name)
-        {
-            var errors = new List<string>();
 
-            if (errors.Any())
-            {
-                return Result<bool>.Fail(errors);
-            }
-
-            var result = Group.Create(name);
-            GroupInternal.Add(result.Value);
-            return Result<bool>.Success(true);
-        }
         public Result<bool> AddGroup(Group group)
         {
             GroupInternal.Add(group);

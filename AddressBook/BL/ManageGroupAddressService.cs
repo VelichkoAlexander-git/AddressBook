@@ -15,20 +15,29 @@ namespace AddressBook.BL
         {
             db = GroupContext;
         }
-        public async Task<Result<bool>> AddGroupAddressAsync(GroupAddressDto groupAddress)
+        public async Task<Result<bool>> AddGroupAddressAsync(User user, string name)
         {
-            var newGroupAddress = GroupAddress.Create(groupAddress.Name);
+            var newGroupAddress = GroupAddress.Create(name);
             if (!newGroupAddress.Succeeded)
             {
                 return Result<bool>.Success(false);
             }
 
-            var user = db.GetUser(groupAddress.UserId);
             user.AddGroupAddress(newGroupAddress.Value);
-
             await db.SaveChangesAsync();
-
             return Result<bool>.Success(true);
+        }
+
+        public async Task DeleteGroupAddressAsync(User user, GroupAddress groupAddress)
+        {
+            user.RemoveGroupAddress(groupAddress);
+            await db.SaveChangesAsync();
+        }
+
+        public async Task UpdateGroupAddressAsync(User user, int id, string name)
+        {
+            user.UpdateGroupAddress(id, name);
+            await db.SaveChangesAsync();
         }
     }
 }

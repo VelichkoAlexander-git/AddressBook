@@ -16,21 +16,21 @@ namespace AddressBook.Controllers
     [ApiController]
     public class GroupsController : ControllerBase
     {
-        private readonly AddressBookContext _context;
-        private readonly ManageGroupService _service;
+        private readonly ManageUsersService _userService;
+        private readonly ManageGroupService _groupService;
 
-        public GroupsController(AddressBookContext context, ManageGroupService service)
+        public GroupsController(ManageUsersService userService, ManageGroupService groupService)
         {
-            _context = context;
-            _service = service;
+            _userService = userService;
+            _groupService = groupService;
         }
 
         // GET: api/Groups
         [HttpGet]
         public async Task<ActionResult<IEnumerable<GroupDto>>> GetGroup(int userId)
         {
-            var user = _context.GetUser(userId);
-            List<GroupDto> item = user.GroupInternal.Select(u => new GroupDto() { Id = u.Id, UserId = u.UserId, Name = u.Name }).ToList();
+            var user = _userService.GetUser(userId);
+            List<GroupDto> item = user.Groups.Select(u => new GroupDto() { Id = u.Id, UserId = u.UserId, Name = u.Name }).ToList();
 
             return item;
         }
@@ -39,10 +39,10 @@ namespace AddressBook.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<GroupDto>> GetGroup(int userId, int id)
         {
-            var user = _context.GetUser(userId);
+            var user = _userService.GetUser(userId);
             if (user != null)
             {
-                var group = user.GroupInternal.Find(u => u.Id == id);
+                var group = user.Groups.FirstOrDefault(u => u.Id == id);
                 if (group != null)
                 {
                     GroupDto item = new GroupDto()
@@ -52,7 +52,7 @@ namespace AddressBook.Controllers
                         Name = group.Name
                     };
 
-                    return item;                    
+                    return item;
                 }
                 return NotFound();
             }
@@ -63,23 +63,27 @@ namespace AddressBook.Controllers
         // To protect from overposting attacks, enable the specific properties you want to bind to, for
         // more details, see https://go.microsoft.com/fwlink/?linkid=2123754.
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutGroup(int userId, int id, GroupDto groupDto)
+        public async Task<IActionResult> UpdateGroup(int userId, int id, GroupDto groupDto)
         {
             if (id != groupDto.Id)
             {
                 return BadRequest();
             }
 
-            var user = _context.GetUser(userId);
+            var user = _userService.GetUser(userId);
             if (user != null)
             {
-                var group = user.UpdateGroup(id, groupDto.Name);
-                if (group.Succeeded)
+                var group = user.Groups.FirstOrDefault(g => g.Id == id);
+                if (group != null)
                 {
-                    await _context.SaveChangesAsync();
-                    return Ok();
+                    if (!user.Groups.Any(g => g.Name == groupDto.Name))
+                    {
+                        await _groupService.UpdateGroupAsync(user, id, groupDto.Name);
+                        return Ok();
+                    }
+                    return Conflict();
                 }
-                return BadRequest(group.Errors);
+                return BadRequest("User -> Group not found");
             }
             return BadRequest("User not found");
         }
@@ -88,35 +92,38 @@ namespace AddressBook.Controllers
         // To protect from overposting attacks, enable the specific properties you want to bind to, for
         // more details, see https://go.microsoft.com/fwlink/?linkid=2123754.
         [HttpPost]
-        public async Task<ActionResult<Group>> PostGroup(int userId, GroupDto group)
+        public async Task<ActionResult<Group>> AddGroup(int userId, GroupDto groupDto)
         {
-            if (!_context.Users.Find(userId).Groups.Any(g => g.Name == group.Name))
+            var user = _userService.GetUser(userId);
+            if (user != null)
             {
-                group.UserId = userId;
-                await _service.AddGroupAsync(group);
-                return CreatedAtAction("GetGroup", new { userId = group.UserId, id = group.Id }, group);
+                if (!user.Groups.Any(g => g.Name == groupDto.Name))
+                {
+                    await _groupService.AddGroupAsync(user, groupDto.Name);
+                    return CreatedAtAction("GetGroup", new { userId = userId, id = groupDto.Id }, groupDto);
+                }
+                return Conflict();
             }
-            return Conflict();
+            return BadRequest("User not found");
         }
 
         // DELETE: api/Groups/5
         [HttpDelete("{id}")]
         public async Task<ActionResult<Group>> DeleteGroup(int userId, int id)
         {
-            var user = _context.GetUser(userId);
+            var user = _userService.GetUser(userId);
             if (user != null)
             {
-                var group = user.GroupInternal.Find(u => u.Id == id);
-                if (group == null)
+                var group = user.Groups.FirstOrDefault(u => u.Id == id);
+                if (group != null)
                 {
-                    return NotFound();
-                }
+                    await _groupService.DeleteGroupAsync(user, group);
 
-                user.RemoveGroup(group);
-                await _context.SaveChangesAsync();               
-                return group;
+                    return group;
+                }
+                return BadRequest("User -> Group not found");
             }
-            return NotFound();
+            return BadRequest("User not found");
         }
     }
 }
