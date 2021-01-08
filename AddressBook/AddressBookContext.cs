@@ -25,10 +25,10 @@ namespace AddressBook
             base.OnModelCreating(modelBuilder);
 
             modelBuilder.Entity<User>().ToTable("UsersTable").HasKey(u => u.Id);
-            modelBuilder.Entity<User>().HasMany(u => u.AbonentInternal).WithOne(s => s.User).HasForeignKey(s => s.UserId);
-            modelBuilder.Entity<User>().HasMany(u => u.GroupAddressInternal).WithOne(s => s.User).HasForeignKey(s => s.UserId);
-            modelBuilder.Entity<User>().HasMany(u => u.GroupInternal).WithOne(s => s.User).HasForeignKey(s => s.UserId);
-            modelBuilder.Entity<User>().HasMany(u => u.GroupPhoneInternal).WithOne(s => s.User).HasForeignKey(s => s.UserId);
+            modelBuilder.Entity<User>().HasMany(u => u.Abonents).WithOne(s => s.User).HasForeignKey(s => s.UserId);
+            modelBuilder.Entity<User>().HasMany(u => u.GroupAddresses).WithOne(s => s.User).HasForeignKey(s => s.UserId);
+            modelBuilder.Entity<User>().HasMany(u => u.Groups).WithOne(s => s.User).HasForeignKey(s => s.UserId);
+            modelBuilder.Entity<User>().HasMany(u => u.GroupPhones).WithOne(s => s.User).HasForeignKey(s => s.UserId);
 
             modelBuilder.Entity<Abonent>().ToTable("AbonentsTable").HasKey(s => s.Id);
             modelBuilder.Entity<Abonent>().Ignore(s => s.Addresses);
@@ -39,9 +39,8 @@ namespace AddressBook
             modelBuilder.Entity<Group>().Ignore(g => g.Abonents);
 
             modelBuilder.Entity<AbonentGroup>().ToTable("AbonentsGroups").HasKey(sg => sg.Id);
-            //modelBuilder.Entity<AbonentGroup>().ToTable("AbonentsGroups").HasKey(sg => new { sg.GroupId, sg.AbonentId });
-            modelBuilder.Entity<AbonentGroup>().HasOne(sg => sg.Abonent).WithMany(s => s.GroupInternal).OnDelete(DeleteBehavior.NoAction);
-            modelBuilder.Entity<AbonentGroup>().HasOne(sg => sg.Group).WithMany(s => s.AbonentGroups).OnDelete(DeleteBehavior.NoAction);
+            modelBuilder.Entity<AbonentGroup>().HasOne(sg => sg.Abonent).WithMany("Groups").HasForeignKey(sg => sg.GroupId).OnDelete(DeleteBehavior.NoAction);
+            modelBuilder.Entity<AbonentGroup>().HasOne(sg => sg.Group).WithMany("Abonents").HasForeignKey(sg => sg.AbonentId).OnDelete(DeleteBehavior.NoAction);
 
             modelBuilder.Entity<GroupPhone>().ToTable("GroupPhonesTable").HasKey(gp => gp.Id);
             modelBuilder.Entity<GroupAddress>().ToTable("GroupAddressesTable").HasKey(ga => ga.Id);
@@ -52,46 +51,8 @@ namespace AddressBook
             modelBuilder.Entity<Address>().ToTable("AddressTable").HasKey(a => a.Id);
             modelBuilder.Entity<Address>().HasOne(a => a.GroupAddress).WithMany().HasForeignKey(a => a.GroupAddressId).OnDelete(DeleteBehavior.NoAction);
 
-            modelBuilder.Entity<Abonent>().HasMany(s => s.AddressInternal).WithOne(o => o.Abonent).HasForeignKey(o => o.AbonentId);
-            modelBuilder.Entity<Abonent>().HasMany(s => s.PhoneInternal).WithOne(o => o.Abonent).HasForeignKey(o => o.AbonentId);
-        }
-
-        public Abonent GetAbonent(int UserId, int AbonentId)
-        {
-            var Abonent = Users.Find(UserId).AbonentInternal.ToList().Find(s => s.Id == AbonentId);
-            Entry(Abonent).Collection(s => s.AddressInternal).Load();
-            Entry(Abonent).Collection(s => s.PhoneInternal).Load();
-            Entry(Abonent).Collection(s => s.GroupInternal).Load();
-            return Abonent;
-        }
-
-        public User GetUser(int id)
-        {
-            var user = Users.Find(id);
-            if (user != null)
-            {
-                Entry(user).Collection(s => s.AbonentInternal).Load();
-                Entry(user).Collection(s => s.GroupAddressInternal).Load();
-                Entry(user).Collection(s => s.GroupInternal).Load();
-                Entry(user).Collection(s => s.GroupPhoneInternal).Load();
-                return user;
-            }
-            return null;
-        }
-
-        public Result<bool> UpdateUser(int id, string login, string password)
-        {
-            var user = Users.FirstOrDefault(g => g.Id == id);
-            if (user != null)
-            {
-                var updateResult = user.Update(login, password);
-                if (!updateResult.Succeeded)
-                {
-                    return Result<bool>.Fail(updateResult.Errors);
-                }
-                return Result<bool>.Success(true);
-            }
-            return Result<bool>.Fail("User not found");
+            modelBuilder.Entity<Abonent>().HasMany(s => s.Addresses).WithOne(o => o.Abonent).HasForeignKey(o => o.AbonentId);
+            modelBuilder.Entity<Abonent>().HasMany(s => s.Phones).WithOne(o => o.Abonent).HasForeignKey(o => o.AbonentId);
         }
 
         public virtual DbSet<AddressBook.Models.Abonent> Abonent { get; set; }
