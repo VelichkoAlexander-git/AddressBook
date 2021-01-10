@@ -38,8 +38,8 @@ namespace AddressBook
             modelBuilder.Entity<Group>().ToTable("GroupsTable").HasKey(g => g.Id);
             modelBuilder.Entity<Group>().Ignore(g => g.Abonents);
 
-            modelBuilder.Entity<AbonentGroup>().HasOne(sg => sg.Abonent).WithMany(sg => sg.Groups).HasForeignKey(sg => sg.GroupId).OnDelete(DeleteBehavior.NoAction);
-            modelBuilder.Entity<AbonentGroup>().HasOne(sg => sg.Group).WithMany(sg => sg.Abonents).HasForeignKey(sg => sg.AbonentId).OnDelete(DeleteBehavior.NoAction);
+            modelBuilder.Entity<AbonentGroup>().HasOne(sg => sg.Abonent).WithMany("GroupInternal").HasForeignKey(sg => sg.GroupId).OnDelete(DeleteBehavior.NoAction);
+            modelBuilder.Entity<AbonentGroup>().HasOne(sg => sg.Group).WithMany("AbonentGroups").HasForeignKey(sg => sg.AbonentId).OnDelete(DeleteBehavior.NoAction);
 
             modelBuilder.Entity<GroupPhone>().ToTable("GroupPhonesTable").HasKey(gp => gp.Id);
             modelBuilder.Entity<GroupAddress>().ToTable("GroupAddressesTable").HasKey(ga => ga.Id);

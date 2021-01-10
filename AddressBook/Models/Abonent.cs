@@ -182,20 +182,20 @@ namespace AddressBook.Models
             }
             return Result<bool>.Success(true);
         }
-        public Result<bool> UpdateAbonentGroup(int id, Group group)
-        {
-            var address = GroupInternal.FirstOrDefault(g => g.AbonentId == id);
-            if (address != null)
-            {
-                var updateResult = address.Update(this, group);
-                if (!updateResult.Succeeded)
-                {
-                    return Result<bool>.Fail(updateResult.Errors);
-                }
-                return Result<bool>.Success(true);
-            }
-            return Result<bool>.Fail("Address not found");
-        }
+        //public Result<bool> UpdateAbonentGroup(int id, Group group)
+        //{
+        //    var address = GroupInternal.FirstOrDefault(g => g.AbonentId == id);
+        //    if (address != null)
+        //    {
+        //        var updateResult = address.Update(this, group);
+        //        if (!updateResult.Succeeded)
+        //        {
+        //            return Result<bool>.Fail(updateResult.Errors);
+        //        }
+        //        return Result<bool>.Success(true);
+        //    }
+        //    return Result<bool>.Fail("Address not found");
+        //}
         
         public override string ToString()
         {

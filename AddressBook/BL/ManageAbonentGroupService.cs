@@ -39,10 +39,10 @@ namespace AddressBook.BL
             return Result<bool>.Success(false);
         }
 
-        public async Task UpdateAbonentGroupAsync(Abonent abonent, int id, Group group)
-        {
-            abonent.UpdateAbonentGroup(id, group);
-            await db.SaveChangesAsync();
-        }
+        //public async Task UpdateAbonentGroupAsync(Abonent abonent, int id, Group group)
+        //{
+        //    abonent.UpdateAbonentGroup(id, group);
+        //    await db.SaveChangesAsync();
+        //}
     }
 }
