@@ -7,7 +7,6 @@ namespace AddressBook.Models
 {
     public class AbonentGroup
     {
-        public int Id { get; protected set; }
         public int AbonentId { get; protected set; }
         public virtual Abonent Abonent { get; protected set; }
         public int GroupId { get; protected set; }

@@ -184,7 +184,7 @@ namespace AddressBook.Models
         }
         public Result<bool> UpdateAbonentGroup(int id, Group group)
         {
-            var address = GroupInternal.FirstOrDefault(g => g.Id == id);
+            var address = GroupInternal.FirstOrDefault(g => g.AbonentId == id);
             if (address != null)
             {
                 var updateResult = address.Update(this, group);
@@ -196,8 +196,6 @@ namespace AddressBook.Models
             }
             return Result<bool>.Fail("Address not found");
         }
-
-        public int GetGroupId(int AbonentGroupId) => GroupInternal.FirstOrDefault(gi => gi.AbonentId == AbonentGroupId).GroupId;
         
         public override string ToString()
         {

@@ -46,12 +46,11 @@ namespace AddressBook.Controllers
                 var abonent = user.Abonents.FirstOrDefault(a => a.Id == abonentId);
                 if (abonent != null)
                 {
-                    var group = abonent.Groups.FirstOrDefault(u => u.Id == abonent.GetGroupId(id));
+                    var group = abonent.Groups.FirstOrDefault(u => u.Id == id);
                     if (group != null)
                     {
                         AbonentGroupDto item = new AbonentGroupDto()
                         {
-                            Id = id,
                             AbonentId = abonentId,
                             GroupId = group.Id
                         };
@@ -63,40 +62,6 @@ namespace AddressBook.Controllers
                 return NotFound();
             }
             return NotFound();
-        }
-
-        // PUT: api/AbonentGroups/5
-        // To protect from overposting attacks, enable the specific properties you want to bind to, for
-        // more details, see https://go.microsoft.com/fwlink/?linkid=2123754.
-        [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateAbonentGroup(int userId, int abonentId, int id, AbonentGroupDto abonentGroupDto)
-        {
-            if (id != abonentGroupDto.Id)
-            {
-                return BadRequest();
-            }
-
-            var user = _userService.GetUser(userId);
-            if (user != null)
-            {
-                var abonent = user.Abonents.FirstOrDefault(u => u.Id == abonentId);
-                if (abonent != null)
-                {
-                    if (!abonent.Groups.Any(p => p.Id == abonentGroupDto.GroupId))
-                    {
-                        var group = user.Groups.FirstOrDefault(g => g.Id == abonentGroupDto.GroupId);
-                        if (group != null)
-                        {
-                            await _abonentGroupServiceService.UpdateAbonentGroupAsync(abonent, abonent.GetGroupId(id), group);
-                            return Ok();
-                        }
-                        return BadRequest("User -> Group not found");
-                    }
-                    return Conflict();
-                }
-                return BadRequest("User -> Abonent not found");
-            }
-            return BadRequest("User not found");
         }
 
         // POST: api/AbonentGroups
@@ -117,7 +82,7 @@ namespace AddressBook.Controllers
                         if (group != null)
                         {
                             await _abonentGroupServiceService.AddAbonentGroupAsync(abonent, group);
-                            return CreatedAtAction("GetAbonentGroup", new { userId = userId, abonentId = abonentGroup.AbonentId, id = abonentGroup.Id }, abonentGroup);
+                            return CreatedAtAction("GetAbonentGroup", new { abonentId = abonentGroup.AbonentId, id = abonentGroup.GroupId }, abonentGroup);
                         }
                         return BadRequest("User -> Group not found");
                     }
@@ -138,7 +103,7 @@ namespace AddressBook.Controllers
                 var abonent = user.Abonents.FirstOrDefault(u => u.Id == abonentId);
                 if (abonent != null)
                 {
-                    var abonentGroup = abonent.Groups.FirstOrDefault(u => u.Id == abonent.GetGroupId(id));
+                    var abonentGroup = abonent.Groups.FirstOrDefault(u => u.Id == id);
                     if (abonentGroup == null)
                     {
                         await _abonentGroupServiceService.DeleteAbonentGroupAsync(user, abonent, abonentGroup);
