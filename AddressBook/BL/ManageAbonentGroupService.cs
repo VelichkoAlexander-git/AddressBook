@@ -38,22 +38,5 @@ namespace AddressBook.BL
             }
             return Result<bool>.Success(false);
         }
-
-        public Result<AbonentGroupDto> GetAbonentGroup(User user, Abonent abonent, int groupId)
-        {
-            var groupAbonent = user.Groups.FirstOrDefault(g => g.Id == groupId && g.Abonents == abonent);
-            if (groupAbonent != null)
-            {
-                return Result<AbonentGroupDto>.Success(new AbonentGroupDto()
-                {
-                    AbonentId = abonent.Id,
-                    GroupId = groupAbonent.Id
-                });
-            }
-            else
-            {
-                return Result<AbonentGroupDto>.Fail(new string[] { "Abonent Group not found" });
-            }
-        }
     }
 }

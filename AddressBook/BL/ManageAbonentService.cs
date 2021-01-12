@@ -62,6 +62,7 @@ namespace AddressBook.BL
             {
                 db.Entry(abonent).Collection(s => s.Phones).Load();
                 db.Entry(abonent).Collection(s => s.Addresses).Load();
+                db.Entry(abonent).Collection("GroupInternal").Load();
                 return abonent;
             }
             return null;

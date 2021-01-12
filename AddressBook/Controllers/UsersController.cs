@@ -88,21 +88,21 @@ namespace AddressBook.Controllers
                 }
                 user.Id = _context.Users.FirstAsync(u => u.Login == user.Login).Result.Id;
                 await _context.SaveChangesAsync();
-                return CreatedAtAction("GetUser", new { id = user.Id}, user);
+                return CreatedAtAction("GetUser", new { id = user.Id }, user);
             }
             return Conflict();
         }
 
         // DELETE: api/Users/5
         [HttpDelete("{id}")]
-        public async Task<ActionResult<User>> DeleteUser(int id)
+        public async Task<ActionResult<UserDto>> DeleteUser(int id)
         {
             var user = _usersService.GetUser(id);
             if (user != null)
             {
                 _context.Users.Remove(user);
                 await _context.SaveChangesAsync();
-                return user;
+                return new UserDto() { Id = user.Id, Login = user.Login, Password = user.Password };
             }
             return NotFound();
         }

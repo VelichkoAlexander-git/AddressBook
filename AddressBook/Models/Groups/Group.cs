@@ -16,7 +16,9 @@ namespace AddressBook.Models
         public IEnumerable<Abonent> Abonents => AbonentGroups.Select(sg => sg.Abonent);
         protected virtual ICollection<AbonentGroup> AbonentGroups { get; set; }
         protected Group()
-        { }
+        {
+            AbonentGroups = new List<AbonentGroup>();
+        }
 
         public static Result<Group> Create(string name)
         {
