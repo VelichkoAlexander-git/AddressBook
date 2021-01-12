@@ -40,5 +40,25 @@ namespace AddressBook.BL
             abonent.UpdateAddress(id, addressGroup, information);
             await db.SaveChangesAsync();
         }
+
+        public Result<AddressDto> GetAddress(Abonent abonent, GroupAddress addressGroup, string information)
+        {
+            var address = abonent.Addresses.FirstOrDefault(g => g.GroupAddressId == addressGroup.Id
+                                                                 && g.Information == information);
+            if (address != null)
+            {
+                return Result<AddressDto>.Success(new AddressDto()
+                {
+                    Id = address.Id,
+                    AbonentId = address.AbonentId,
+                    GroupAddressId = address.GroupAddressId,
+                    Information = address.Information
+                });
+            }
+            else
+            {
+                return Result<AddressDto>.Fail(new string[] { "Address not found" });
+            }
+        }
     }
 }

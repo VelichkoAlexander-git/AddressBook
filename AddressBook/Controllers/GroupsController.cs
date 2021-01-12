@@ -65,11 +65,6 @@ namespace AddressBook.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateGroup(int userId, int id, GroupDto groupDto)
         {
-            if (id != groupDto.Id)
-            {
-                return BadRequest();
-            }
-
             var user = _userService.GetUser(userId);
             if (user != null)
             {
@@ -100,6 +95,7 @@ namespace AddressBook.Controllers
                 if (!user.Groups.Any(g => g.Name == groupDto.Name))
                 {
                     await _groupService.AddGroupAsync(user, groupDto.Name);
+                    groupDto = _groupService.GetGroup(user, groupDto.Name).Value;
                     return CreatedAtAction("GetGroup", new { userId = userId, id = groupDto.Id }, groupDto);
                 }
                 return Conflict();
@@ -109,7 +105,7 @@ namespace AddressBook.Controllers
 
         // DELETE: api/Groups/5
         [HttpDelete("{id}")]
-        public async Task<ActionResult<Group>> DeleteGroup(int userId, int id)
+        public async Task<ActionResult<GroupDto>> DeleteGroup(int userId, int id)
         {
             var user = _userService.GetUser(userId);
             if (user != null)
@@ -119,7 +115,7 @@ namespace AddressBook.Controllers
                 {
                     await _groupService.DeleteGroupAsync(user, group);
 
-                    return group;
+                    return new GroupDto() { Id = group.Id, UserId = group.UserId, Name = group.Name };
                 }
                 return BadRequest("User -> Group not found");
             }

@@ -11,7 +11,7 @@ namespace AddressBook
     {
         public AddressBookContext(DbContextOptions<AddressBookContext> options) : base(options)
         {
-            Database.EnsureDeleted();
+            //Database.EnsureDeleted();
             Database.EnsureCreated();
         }
         public virtual DbSet<User> Users { get; set; }
@@ -38,6 +38,7 @@ namespace AddressBook
             modelBuilder.Entity<Group>().ToTable("GroupsTable").HasKey(g => g.Id);
             modelBuilder.Entity<Group>().Ignore(g => g.Abonents);
 
+            modelBuilder.Entity<AbonentGroup>().HasKey(ag => new { ag.AbonentId, ag.GroupId });
             modelBuilder.Entity<AbonentGroup>().HasOne(sg => sg.Abonent).WithMany("GroupInternal").HasForeignKey(sg => sg.GroupId).OnDelete(DeleteBehavior.NoAction);
             modelBuilder.Entity<AbonentGroup>().HasOne(sg => sg.Group).WithMany("AbonentGroups").HasForeignKey(sg => sg.AbonentId).OnDelete(DeleteBehavior.NoAction);
 

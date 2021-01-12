@@ -72,11 +72,6 @@ namespace AddressBook.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdatePhone(int userId, int abonentId, int id, PhoneDto phoneDto)
         {
-            if (id != phoneDto.Id)
-            {
-                return BadRequest();
-            }
-
             var user = _userService.GetUser(userId);
             if (user != null)
             {

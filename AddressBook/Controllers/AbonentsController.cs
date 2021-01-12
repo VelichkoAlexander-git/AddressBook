@@ -82,11 +82,6 @@ namespace AddressBook.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateAbonent(int userId, int id, AbonentDto AbonentDto)
         {
-            if (id != AbonentDto.Id)
-            {
-                return BadRequest();
-            }
-
             var user = _userService.GetUser(userId);
             if (user != null)
             {
@@ -133,7 +128,8 @@ namespace AddressBook.Controllers
                                                                 AbonentDto.Photo,
                                                                 AbonentDto.Sex,
                                                                 AbonentDto.Mail);
-                    return CreatedAtAction("GetAbonent", new { userId = userId, id = AbonentDto.Id }, AbonentDto);
+                    AbonentDto = _abonentService.GetAbonent(user, AbonentDto.FirstName, AbonentDto.MiddleName, AbonentDto.LastName).Value;
+                    return CreatedAtAction("GetAbonent", new { userId = AbonentDto.UserId, id = AbonentDto.Id }, AbonentDto);
                 }
                 return Conflict();
             }
@@ -142,16 +138,27 @@ namespace AddressBook.Controllers
 
         // DELETE: api/Abonents/5
         [HttpDelete("{id}")]
-        public async Task<ActionResult<Abonent>> DeleteAbonent(int userId, int id)
+        public async Task<ActionResult<AbonentDto>> DeleteAbonent(int userId, int id)
         {
             var user = _userService.GetUser(userId);
             if (user != null)
             {
-                var abonent = user.Abonents.ElementAt(id);
-                if (abonent == null)
+                var abonent = user.Abonents.FirstOrDefault(a => a.Id == id);
+                if (abonent != null)
                 {
                     await _abonentService.DeleteAbonentAsync(user, abonent);
-                    return abonent;
+                    return new AbonentDto()
+                    {
+                        Id = abonent.Id,
+                        UserId = abonent.UserId,
+                        FirstName = abonent.FirstName,
+                        MiddleName = abonent.MiddleName,
+                        LastName = abonent.LastName,
+                        DateOfBirth = abonent.DateOfBirth,
+                        Photo = abonent.Photo,
+                        Sex = abonent.Sex,
+                        Mail = abonent.Mail
+                    };
                 }
                 return BadRequest("User -> Abonent not found");
             }

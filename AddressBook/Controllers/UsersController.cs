@@ -59,17 +59,13 @@ namespace AddressBook.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateUser(int id, UserDto userDto)
         {
-            if (id != userDto.Id)
-            {
-                return BadRequest();
-            }
-
             var user = _usersService.GetUser(id);
             if (user != null)
             {
                 if (!_context.Users.Any(u => u.Login == userDto.Login))
                 {
                     _usersService.UpdateUserAsync(user, userDto.Login, userDto.Password);
+                    await _context.SaveChangesAsync();
                     return Ok();
                 }
                 return Conflict();
@@ -90,7 +86,9 @@ namespace AddressBook.Controllers
                 {
                     BadRequest(error);
                 }
-                return CreatedAtAction("GetUser", new { id = _context.Users.FirstAsync(u => u.Login == user.Login).Id }, user);
+                user.Id = _context.Users.FirstAsync(u => u.Login == user.Login).Result.Id;
+                await _context.SaveChangesAsync();
+                return CreatedAtAction("GetUser", new { id = user.Id}, user);
             }
             return Conflict();
         }

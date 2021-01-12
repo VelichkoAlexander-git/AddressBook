@@ -65,11 +65,6 @@ namespace AddressBook.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateGroupPhone(int userId, int id, GroupPhoneDto groupPhoneDto)
         {
-            if (id != groupPhoneDto.Id)
-            {
-                return BadRequest();
-            }
-
             var user = _userService.GetUser(userId);
             if (user != null)
             {
@@ -92,15 +87,17 @@ namespace AddressBook.Controllers
         // To protect from overposting attacks, enable the specific properties you want to bind to, for
         // more details, see https://go.microsoft.com/fwlink/?linkid=2123754.
         [HttpPost]
-        public async Task<ActionResult<GroupPhone>> AddGroupPhone(int userId, GroupPhoneDto groupPhone)
+        public async Task<ActionResult<GroupPhoneDto>> AddGroupPhone(int userId, GroupPhoneDto groupPhoneDto)
         {
+            groupPhoneDto.UserId = userId;
             var user = _userService.GetUser(userId);
             if (user != null)
             {
-                if (!user.Groups.Any(g => g.Name == groupPhone.Name))
+                if (!user.Groups.Any(g => g.Name == groupPhoneDto.Name))
                 {
-                    await _groupPhoneService.AddGroupPhoneAsync(user, groupPhone.Name);
-                    return CreatedAtAction("GetGroupPhone", new { userId = groupPhone.UserId, id = groupPhone.Id }, groupPhone);
+                    await _groupPhoneService.AddGroupPhoneAsync(user, (string)groupPhoneDto.Name);
+                    groupPhoneDto = _groupPhoneService.GetGroupPhone(user, (string)groupPhoneDto.Name).Value;
+                    return CreatedAtAction("GetGroupPhone", new { userId = groupPhoneDto.UserId, id = groupPhoneDto.Id }, groupPhoneDto);
                 }
                 return Conflict();
             }
@@ -109,7 +106,7 @@ namespace AddressBook.Controllers
 
         // DELETE: api/GroupPhones/5
         [HttpDelete("{id}")]
-        public async Task<ActionResult<GroupPhone>> DeleteGroupPhone(int userId, int id)
+        public async Task<ActionResult<GroupPhoneDto>> DeleteGroupPhone(int userId, int id)
         {
             var user = _userService.GetUser(userId);
             if (user != null)
@@ -117,8 +114,15 @@ namespace AddressBook.Controllers
                 var groupPhone = user.GroupPhones.FirstOrDefault(u => u.Id == id);
                 if (groupPhone != null)
                 {
+                    GroupPhoneDto dto = new GroupPhoneDto()
+                    {
+                        Id = groupPhone.Id,
+                        UserId = groupPhone.UserId,
+                        Name = groupPhone.Name
+                    };
                     await _groupPhoneService.DeleteGroupPhoneAsync(user, groupPhone);
-                    return groupPhone;
+
+                    return dto;
                 }
                 return BadRequest("User -> GroupPhone not found");
             }

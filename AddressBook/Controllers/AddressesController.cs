@@ -72,11 +72,6 @@ namespace AddressBook.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateAddress(int userId, int abonentId, int id, AddressDto addressDto)
         {
-            if (id != addressDto.Id)
-            {
-                return BadRequest();
-            }
-
             var user = _userService.GetUser(userId);
             if (user != null)
             {
@@ -119,11 +114,11 @@ namespace AddressBook.Controllers
                 {
                     if (!abonent.Addresses.Any(p => p.Information == addressDto.Information))
                     {
-                        addressDto.AbonentId = abonentId;
                         var addressGroup = user.GroupAddresses.FirstOrDefault(ga => ga.Id == addressDto.GroupAddressId);
                         if (addressGroup != null)
                         {
                             await _addressService.AddAddressAsync(abonent, addressGroup, addressDto.Information);
+                            addressDto = _addressService.GetAddress(abonent, addressGroup, addressDto.Information).Value;
                             return CreatedAtAction("GetAddress", new { userId = userId, abonentId = addressDto.AbonentId, id = addressDto.Id }, addressDto);
                         }
                         return BadRequest("User -> GroupAddress not found");
@@ -137,7 +132,7 @@ namespace AddressBook.Controllers
 
         // DELETE: api/Addresses/5
         [HttpDelete("{id}")]
-        public async Task<ActionResult<Address>> DeleteAddress(int userId, int abonentId, int id)
+        public async Task<ActionResult<AddressDto>> DeleteAddress(int userId, int abonentId, int id)
         {
             var user = _userService.GetUser(userId);
             if (user != null)
@@ -150,7 +145,13 @@ namespace AddressBook.Controllers
                     {
                         await _addressService.DeleteAddressAsync(abonent, address);
 
-                        return address;
+                        return new AddressDto()
+                        {
+                            Id = address.Id,
+                            AbonentId = address.AbonentId,
+                            GroupAddressId = address.GroupAddressId,
+                            Information = address.Information
+                        };
                     }
                     return BadRequest("User -> Abonent -> Address not found");
                 }

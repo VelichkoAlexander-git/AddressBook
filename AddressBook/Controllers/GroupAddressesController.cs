@@ -65,11 +65,6 @@ namespace AddressBook.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateGroupAddress(int userId, int id, GroupAddressDto groupAddressDto)
         {
-            if (id != groupAddressDto.Id)
-            {
-                return BadRequest();
-            }
-
             var user = _userService.GetUser(userId);
             if (user != null)
             {
@@ -99,7 +94,8 @@ namespace AddressBook.Controllers
             {
                 if (!user.GroupAddresses.Any(g => g.Name == groupAddressDto.Name))
                 {
-                    await _groupAddressService.AddGroupAddressAsync(user, groupAddressDto.Name);
+                    await _groupAddressService.AddGroupAddressAsync(user, (string)groupAddressDto.Name);
+                    groupAddressDto = _groupAddressService.GetGroupAddress(user, (string)groupAddressDto.Name).Value;
                     return CreatedAtAction("GetGroupAddress", new { userId = groupAddressDto.UserId, id = groupAddressDto.Id }, groupAddressDto);
                 }
                 return Conflict();
@@ -109,7 +105,7 @@ namespace AddressBook.Controllers
 
         // DELETE: api/GroupAddresses/5
         [HttpDelete("{id}")]
-        public async Task<ActionResult<GroupAddress>> DeleteGroupAddress(int userId, int id)
+        public async Task<ActionResult<GroupAddressDto>> DeleteGroupAddress(int userId, int id)
         {
             var user = _userService.GetUser(userId);
             if (user != null)
@@ -117,8 +113,14 @@ namespace AddressBook.Controllers
                 var groupAddress = user.GroupAddresses.FirstOrDefault(u => u.Id == id);
                 if (groupAddress != null)
                 {
+                    GroupAddressDto dto = new GroupAddressDto()
+                    {
+                        Id = groupAddress.Id,
+                        UserId = groupAddress.UserId,
+                        Name = groupAddress.Name
+                    };
                     await _groupAddressService.DeleteGroupAddressAsync(user, groupAddress);
-                    return groupAddress;
+                    return dto;
                 }
                 return BadRequest("User -> GroupPhone not found");
             }

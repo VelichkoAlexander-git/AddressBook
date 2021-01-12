@@ -45,5 +45,18 @@ namespace AddressBook.BL
             user.UpdateGroupPhone(id, name);
             await db.SaveChangesAsync();
         }
+
+        public Result<GroupPhoneDto> GetGroupPhone(User user, string name)
+        {
+            var groupPhone = user.GroupPhones.FirstOrDefault(u => u.Name == name);
+            if (groupPhone != null)
+            {
+                return Result<GroupPhoneDto>.Success(new GroupPhoneDto() { Id = groupPhone.Id, UserId = groupPhone.UserId, Name = groupPhone.Name });
+            }
+            else
+            {
+                return Result<GroupPhoneDto>.Fail(new string[] {"Group Phone not found"});
+            }
+        }
     }
 }

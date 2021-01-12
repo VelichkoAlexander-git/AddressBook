@@ -42,5 +42,18 @@ namespace AddressBook.BL
 
             await db.SaveChangesAsync();
         }
+
+        public Result<GroupDto> GetGroup(User user, string name)
+        {
+            var group = user.Groups.FirstOrDefault(u => u.Name == name);
+            if (group != null)
+            {
+                return Result<GroupDto>.Success(new GroupDto() { Id = group.Id, UserId = group.UserId, Name = group.Name });
+            }
+            else
+            {
+                return Result<GroupDto>.Fail(new string[] { "Group Address not found" });
+            }
+        }
     }
 }
