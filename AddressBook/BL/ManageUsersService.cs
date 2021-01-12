@@ -93,7 +93,7 @@ namespace AddressBook.BL
 
         public async Task<Result<bool>> UpdateUserAsync(User user, string login, string password)
         {
-            if (!db.Users.Any(u => u.Login == login))
+            if (!db.Users.Any(u => u.Login == login && u.Id != user.Id))
             {
                 var updateResult = user.Update(login, password);
                 if (updateResult.Succeeded)

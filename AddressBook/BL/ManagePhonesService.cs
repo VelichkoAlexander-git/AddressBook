@@ -41,7 +41,7 @@ namespace AddressBook.BL
 
         public async Task<Result<bool>> UpdatePhoneAsync(Abonent abonent, int phoneId, GroupPhone groupPhone, string number)
         {
-            if (!abonent.Phones.Any(p => p.Number == number))
+            if (!abonent.Phones.Any(p => p.Number == number && p.Id != phoneId))
             {
                 var answer = abonent.UpdatePhone(phoneId, groupPhone, number);
                 if (answer.Succeeded)

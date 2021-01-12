@@ -39,7 +39,7 @@ namespace AddressBook.BL
 
         public async Task<Result<bool>> UpdateGroupAsync(User user, int id, string name)
         {
-            if (!user.Groups.Any(g => g.Name == name))
+            if (!user.Groups.Any(g => g.Name == name && g.Id != id))
             {
                 var answer = user.UpdateGroup(id, name);
                 if (answer.Succeeded)

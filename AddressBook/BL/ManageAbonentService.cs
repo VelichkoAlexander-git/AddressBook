@@ -54,7 +54,7 @@ namespace AddressBook.BL
 
         public async Task<Result<bool>> UpdateAbonentAsync(User user, int id, string firstName, string middleName, string lastName, DateTime? dateOfBirth, byte[] photo, Sex sex, string mail)
         {
-            if (!user.Abonents.Any(g => g.FirstName == firstName && g.MiddleName == middleName && g.LastName == lastName))
+            if (!user.Abonents.Any(g => g.FirstName == firstName && g.MiddleName == middleName && g.LastName == lastName && g.Id != id))
             {
                 var answer = user.UpdateAbonent(id, firstName, middleName, lastName, sex, dateOfBirth, photo, mail);
                 if (answer.Succeeded)

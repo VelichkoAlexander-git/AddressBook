@@ -40,7 +40,7 @@ namespace AddressBook.BL
 
         public async Task<Result<bool>> UpdateAddressAsync(Abonent abonent, int id, GroupAddress addressGroup, string information)
         {
-            if (!abonent.Addresses.Any(p => p.Information == information))
+            if (!abonent.Addresses.Any(p => p.Information == information && p.Id != id))
             {
                 var answer = abonent.UpdateAddress(id, addressGroup, information);
                 if (answer.Succeeded)
