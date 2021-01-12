@@ -18,11 +18,13 @@ namespace AddressBook.Controllers
     {
         private readonly ManageUsersService _userService;
         private readonly ManagePhonesService _phoneService;
+        private readonly ManageAbonentService _abonentService;
 
-        public PhonesController(ManageUsersService userService, ManagePhonesService phoneService)
+        public PhonesController(ManageUsersService userService, ManagePhonesService phoneService, ManageAbonentService abonentService)
         {
             _userService = userService;
             _phoneService = phoneService;
+            _abonentService = abonentService;
         }
 
         // GET: api/Phones
@@ -30,7 +32,7 @@ namespace AddressBook.Controllers
         public async Task<ActionResult<IEnumerable<PhoneDto>>> GetPhone(int userId, int abonentId)
         {
             var user = _userService.GetUser(userId);
-            var abonent = user.Abonents.FirstOrDefault(a => a.Id == abonentId);
+            var abonent = _abonentService.GetAbonent(user, abonentId);
             List<PhoneDto> item = abonent.Phones.Select(p => new PhoneDto() { Id = p.Id, AbonentId = p.AbonentId, GroupPhoneId = p.GroupPhoneId, Number = p.Number }).ToList();
 
             return item;
@@ -43,7 +45,7 @@ namespace AddressBook.Controllers
             var user = _userService.GetUser(userId);
             if (user != null)
             {
-                var abonent = user.Abonents.FirstOrDefault(a => a.Id == abonentId);
+                var abonent = _abonentService.GetAbonent(user, abonentId);
                 if (abonent != null)
                 {
                     var phone = abonent.Phones.FirstOrDefault(u => u.Id == id);
@@ -75,7 +77,7 @@ namespace AddressBook.Controllers
             var user = _userService.GetUser(userId);
             if (user != null)
             {
-                var abonent = user.Abonents.FirstOrDefault(u => u.Id == abonentId);
+                var abonent =_abonentService.GetAbonent(user, abonentId);
                 if (abonent != null)
                 {
                     var phone = abonent.Phones.FirstOrDefault(p => p.Id == id);
@@ -109,16 +111,16 @@ namespace AddressBook.Controllers
             var user = _userService.GetUser(userId);
             if (user != null)
             {
-                var abonent = user.Abonents.FirstOrDefault(u => u.Id == abonentId);
+                var abonent = _abonentService.GetAbonent(user, abonentId);
                 if (abonent != null)
                 {
                     if (!abonent.Phones.Any(p => p.Number == phoneDto.Number))
                     {
-                        phoneDto.AbonentId = abonentId;
                         var phoneGroup = user.GroupPhones.FirstOrDefault(gp => gp.Id == phoneDto.GroupPhoneId);
                         if (phoneGroup != null)
                         {
                             await _phoneService.AddPhoneAsync(abonent, phoneGroup, phoneDto.Number);
+                            phoneDto = _phoneService.GetPhone(abonent, phoneGroup, phoneDto.Number).Value;
                             return CreatedAtAction("GetPhone", new { userId = userId, abonentId = phoneDto.AbonentId, id = phoneDto.Id }, phoneDto);
                         }
                         return BadRequest("User -> GroupPhones not found");
@@ -132,20 +134,19 @@ namespace AddressBook.Controllers
 
         // DELETE: api/Phones/5
         [HttpDelete("{id}")]
-        public async Task<ActionResult<Phone>> DeletePhone(int userId, int abonentId, int id)
+        public async Task<ActionResult<PhoneDto>> DeletePhone(int userId, int abonentId, int id)
         {
             var user = _userService.GetUser(userId);
             if (user != null)
             {
-                var abonent = user.Abonents.FirstOrDefault(u => u.Id == abonentId);
+                var abonent = _abonentService.GetAbonent(user, abonentId);
                 if (abonent != null)
                 {
                     var phone = abonent.Phones.FirstOrDefault(u => u.Id == id);
                     if (phone != null)
                     {
                         await _phoneService.DeletePhoneAsync(abonent, phone);
-
-                        return phone;
+                        return new PhoneDto() {Id = phone.Id, AbonentId = phone.AbonentId, GroupPhoneId = phone.GroupPhoneId, Number = phone.Number };
                     }
                     return BadRequest("User -> Abonent -> Phone not found");
                 }

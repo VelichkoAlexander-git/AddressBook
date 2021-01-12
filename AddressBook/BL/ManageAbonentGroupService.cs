@@ -23,7 +23,7 @@ namespace AddressBook.BL
                 return Result<bool>.Success(false);
             }
 
-            abonent.AddGroup(newAddress.Value);
+            abonent.AddAbonentGroup(newAddress.Value);
             await db.SaveChangesAsync();
             return Result<bool>.Success(true);
         }
@@ -32,17 +32,28 @@ namespace AddressBook.BL
         {
             if (!user.Abonents.Any(a => a.Groups == abonentGroup))
             {
-                abonent.RemoveGroup(abonentGroup);
+                abonent.RemoveAbonentGroup(abonentGroup);
                 await db.SaveChangesAsync();
                 return Result<bool>.Success(true);
             }
             return Result<bool>.Success(false);
         }
 
-        //public async Task UpdateAbonentGroupAsync(Abonent abonent, int id, Group group)
-        //{
-        //    abonent.UpdateAbonentGroup(id, group);
-        //    await db.SaveChangesAsync();
-        //}
+        public Result<AbonentGroupDto> GetAbonentGroup(User user, Abonent abonent, int groupId)
+        {
+            var groupAbonent = user.Groups.FirstOrDefault(g => g.Id == groupId && g.Abonents == abonent);
+            if (groupAbonent != null)
+            {
+                return Result<AbonentGroupDto>.Success(new AbonentGroupDto()
+                {
+                    AbonentId = abonent.Id,
+                    GroupId = groupAbonent.Id
+                });
+            }
+            else
+            {
+                return Result<AbonentGroupDto>.Fail(new string[] { "Abonent Group not found" });
+            }
+        }
     }
 }

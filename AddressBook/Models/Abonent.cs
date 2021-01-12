@@ -159,12 +159,12 @@ namespace AddressBook.Models
             return Result<bool>.Success(true);
         }
 
-        public Result<bool> AddGroup(AbonentGroup abonentGroup)
+        public Result<bool> AddAbonentGroup(AbonentGroup abonentGroup)
         {
             GroupInternal.Add(abonentGroup);
             return Result<bool>.Success(true);
         }
-        public Result<bool> RemoveGroup(Group groupToDelete)
+        public Result<bool> RemoveAbonentGroup(Group groupToDelete)
         {
             var errors = new List<string>();
 

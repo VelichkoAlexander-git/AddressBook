@@ -55,6 +55,18 @@ namespace AddressBook.BL
             await db.SaveChangesAsync();
         }
 
+        public Abonent GetAbonent(User user, int id)
+        {
+            var abonent = user.Abonents.FirstOrDefault(a => a.Id == id);
+            if (abonent != null)
+            {
+                db.Entry(abonent).Collection(s => s.Phones).Load();
+                db.Entry(abonent).Collection(s => s.Addresses).Load();
+                return abonent;
+            }
+            return null;
+        }
+
         public Result<AbonentDto> GetAbonent(User user,string firstName, string middleName, string lastName)
         {
             var abonent = user.Abonents.FirstOrDefault(g => g.FirstName == firstName

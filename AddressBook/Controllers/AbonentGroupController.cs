@@ -18,11 +18,13 @@ namespace AddressBook.Controllers
     {
         private readonly ManageUsersService _userService;
         private readonly ManageAbonentGroupService _abonentGroupServiceService;
+        private readonly ManageAbonentService _abonentService;
 
-        public AbonentGroupController(ManageUsersService userService, ManageAbonentGroupService service)
+        public AbonentGroupController(ManageUsersService userService, ManageAbonentGroupService service, ManageAbonentService abonentService)
         {
             _userService = userService;
             _abonentGroupServiceService = service;
+            _abonentService = abonentService;
         }
 
         // GET: api/AbonentGroups
@@ -30,7 +32,7 @@ namespace AddressBook.Controllers
         public async Task<ActionResult<IEnumerable<AbonentGroupDto>>> GetAbonentGroup(int userId, int abonentId)
         {
             var user = _userService.GetUser(userId);
-            var abonent = user.Abonents.FirstOrDefault(a => a.Id == abonentId);
+            var abonent = _abonentService.GetAbonent(user, abonentId);
             List<AbonentGroupDto> item = abonent.Groups.Select(ag => new AbonentGroupDto() { AbonentId = abonentId, GroupId = ag.Id }).ToList();
 
             return item;
@@ -43,7 +45,7 @@ namespace AddressBook.Controllers
             var user = _userService.GetUser(userId);
             if (user != null)
             {
-                var abonent = user.Abonents.FirstOrDefault(a => a.Id == abonentId);
+                var abonent = _abonentService.GetAbonent(user, abonentId);
                 if (abonent != null)
                 {
                     var group = abonent.Groups.FirstOrDefault(u => u.Id == id);
@@ -73,7 +75,7 @@ namespace AddressBook.Controllers
             var user = _userService.GetUser(userId);
             if (user != null)
             {
-                var abonent = user.Abonents.FirstOrDefault(u => u.Id == abonentId);
+                var abonent = _abonentService.GetAbonent(user, abonentId);
                 if (abonent != null)
                 {
                     if (!abonent.Groups.Any(p => p.Id == abonentGroup.GroupId))
@@ -82,6 +84,7 @@ namespace AddressBook.Controllers
                         if (group != null)
                         {
                             await _abonentGroupServiceService.AddAbonentGroupAsync(abonent, group);
+                            abonentGroup = _abonentGroupServiceService.GetAbonentGroup(user, abonent, abonentGroup.GroupId).Value;
                             return CreatedAtAction("GetAbonentGroup", new { abonentId = abonentGroup.AbonentId, id = abonentGroup.GroupId }, abonentGroup);
                         }
                         return BadRequest("User -> Group not found");
@@ -95,19 +98,19 @@ namespace AddressBook.Controllers
 
         // DELETE: api/AbonentGroups/5
         [HttpDelete("{id}")]
-        public async Task<ActionResult<Group>> DeleteAbonentGroup(int userId, int abonentId, int id)
+        public async Task<ActionResult<AbonentGroupDto>> DeleteAbonentGroup(int userId, int abonentId, int id)
         {
             var user = _userService.GetUser(userId);
             if (user != null)
             {
-                var abonent = user.Abonents.FirstOrDefault(u => u.Id == abonentId);
+                var abonent = _abonentService.GetAbonent(user, abonentId);
                 if (abonent != null)
                 {
                     var abonentGroup = abonent.Groups.FirstOrDefault(u => u.Id == id);
                     if (abonentGroup == null)
                     {
                         await _abonentGroupServiceService.DeleteAbonentGroupAsync(user, abonent, abonentGroup);
-                        return abonentGroup;
+                        return new AbonentGroupDto() { AbonentId = abonent.Id, GroupId = abonentGroup.Id };
                     }
                     return NotFound();
                 }

@@ -43,5 +43,25 @@ namespace AddressBook.BL
 
             await db.SaveChangesAsync();
         }
+
+        public Result<PhoneDto> GetPhone(Abonent abonent, GroupPhone phoneGroup, string number)
+        {
+            var address = abonent.Phones.FirstOrDefault(g => g.GroupPhoneId == phoneGroup.Id
+                                                                 && g.Number == number);
+            if (address != null)
+            {
+                return Result<PhoneDto>.Success(new PhoneDto()
+                {
+                    Id = address.Id,
+                    AbonentId = address.AbonentId,
+                    GroupPhoneId = address.GroupPhoneId,
+                    Number = address.Number
+                });
+            }
+            else
+            {
+                return Result<PhoneDto>.Fail(new string[] { "Address not found" });
+            }
+        }
     }
 }

@@ -18,11 +18,13 @@ namespace AddressBook.Controllers
     {
         private readonly ManageUsersService _userService;
         private readonly ManageAddressService _addressService;
+        private readonly ManageAbonentService _abonentService;
 
-        public AddressesController(ManageUsersService userService, ManageAddressService service)
+        public AddressesController(ManageUsersService userService, ManageAddressService service, ManageAbonentService abonentService)
         {
             _userService = userService;
             _addressService = service;
+            _abonentService = abonentService;
         }
 
         // GET: api/Addresses
@@ -30,7 +32,7 @@ namespace AddressBook.Controllers
         public async Task<ActionResult<IEnumerable<AddressDto>>> GetAddress(int userId, int abonentId)
         {
             var user = _userService.GetUser(userId);
-            var abonent = user.Abonents.FirstOrDefault(a => a.Id == abonentId);
+            var abonent = _abonentService.GetAbonent(user, abonentId);
             List<AddressDto> item = abonent.Addresses.Select(a => new AddressDto() { Id = a.Id, AbonentId = a.AbonentId, GroupAddressId = a.GroupAddressId, Information = a.Information }).ToList();
 
             return item;
@@ -43,7 +45,7 @@ namespace AddressBook.Controllers
             var user = _userService.GetUser(userId);
             if (user != null)
             {
-                var abonent = user.Abonents.FirstOrDefault(a => a.Id == abonentId);
+                var abonent = _abonentService.GetAbonent(user, abonentId);
                 if (abonent != null)
                 {
                     var address = abonent.Addresses.FirstOrDefault(u => u.Id == id);
@@ -75,7 +77,7 @@ namespace AddressBook.Controllers
             var user = _userService.GetUser(userId);
             if (user != null)
             {
-                var abonent = user.Abonents.FirstOrDefault(u => u.Id == abonentId);
+                var abonent = _abonentService.GetAbonent(user, abonentId);
                 if (abonent != null)
                 {
                     var address = abonent.Addresses.FirstOrDefault(a => a.Id == id);
@@ -109,7 +111,7 @@ namespace AddressBook.Controllers
             var user = _userService.GetUser(userId);
             if (user != null)
             {
-                var abonent = user.Abonents.FirstOrDefault(u => u.Id == abonentId);
+                var abonent = _abonentService.GetAbonent(user, abonentId);
                 if (abonent != null)
                 {
                     if (!abonent.Addresses.Any(p => p.Information == addressDto.Information))
@@ -137,21 +139,14 @@ namespace AddressBook.Controllers
             var user = _userService.GetUser(userId);
             if (user != null)
             {
-                var abonent = user.Abonents.FirstOrDefault(u => u.Id == abonentId);
+                var abonent = _abonentService.GetAbonent(user, abonentId);
                 if (abonent != null)
                 {
                     var address = abonent.Addresses.FirstOrDefault(u => u.Id == id);
-                    if (address == null)
+                    if (address != null)
                     {
                         await _addressService.DeleteAddressAsync(abonent, address);
-
-                        return new AddressDto()
-                        {
-                            Id = address.Id,
-                            AbonentId = address.AbonentId,
-                            GroupAddressId = address.GroupAddressId,
-                            Information = address.Information
-                        };
+                        return new AddressDto() { Id = address.Id, AbonentId = address.AbonentId, GroupAddressId = address.GroupAddressId, Information = address.Information };
                     }
                     return BadRequest("User -> Abonent -> Address not found");
                 }
