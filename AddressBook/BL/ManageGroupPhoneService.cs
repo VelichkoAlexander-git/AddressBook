@@ -17,16 +17,18 @@ namespace AddressBook.BL
         }
         public async Task<Result<bool>> AddGroupPhoneAsync(User user, string name)
         {
-            var newGroupPhone = GroupPhone.Create(name);
-            if (!newGroupPhone.Succeeded)
+            if (!user.Groups.Any(g => g.Name == name))
             {
-                return Result<bool>.Success(false);
+                var newGroupPhone = GroupPhone.Create(name);
+                if (newGroupPhone.Succeeded)
+                {
+                    user.AddGroupPhone(newGroupPhone.Value);
+                    await db.SaveChangesAsync();
+                    return Result<bool>.Success(true);
+                }
+                return Result<bool>.Fail(newGroupPhone.Errors);
             }
-
-            user.AddGroupPhone(newGroupPhone.Value);
-
-            await db.SaveChangesAsync();
-            return Result<bool>.Success(true);
+            return Result<bool>.Fail(new string[] { "Such GroupPhone exists" });
         }
 
         public async Task<Result<bool>> DeleteGroupPhoneAsync(User user, GroupPhone groupPhone)
@@ -40,10 +42,18 @@ namespace AddressBook.BL
             return Result<bool>.Success(false);
         }
 
-        public async Task UpdateGroupPhoneAsync(User user, int id, string name)
+        public async Task<Result<bool>> UpdateGroupPhoneAsync(User user, int id, string name)
         {
-            user.UpdateGroupPhone(id, name);
-            await db.SaveChangesAsync();
+            if (!user.Groups.Any(g => g.Name == name))
+            {
+                var answer = user.UpdateGroupPhone(id, name);
+                if (answer.Succeeded)
+                {
+                    await db.SaveChangesAsync();
+                }
+                return Result<bool>.Fail(answer.Errors);
+            }
+            return Result<bool>.Fail(new string[] { "Such GroupPhone exists" });
         }
 
         public Result<GroupPhoneDto> GetGroupPhone(User user, string name)
@@ -53,10 +63,7 @@ namespace AddressBook.BL
             {
                 return Result<GroupPhoneDto>.Success(new GroupPhoneDto() { Id = groupPhone.Id, UserId = groupPhone.UserId, Name = groupPhone.Name });
             }
-            else
-            {
-                return Result<GroupPhoneDto>.Fail(new string[] {"Group Phone not found"});
-            }
+            return Result<GroupPhoneDto>.Fail(new string[] { "GroupPhone not found" });
         }
     }
 }

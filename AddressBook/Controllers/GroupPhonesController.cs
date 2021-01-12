@@ -45,18 +45,16 @@ namespace AddressBook.Controllers
                 var groupPhone = user.GroupPhones.FirstOrDefault(u => u.Id == id);
                 if (groupPhone != null)
                 {
-                    GroupPhoneDto item = new GroupPhoneDto()
+                    return new GroupPhoneDto()
                     {
                         Id = groupPhone.Id,
                         UserId = groupPhone.UserId,
                         Name = groupPhone.Name
                     };
-
-                    return item;
                 }
-                return NotFound();
+                return BadRequest("User -> GroupPhone not found");
             }
-            return NotFound();
+            return BadRequest("User not found");
         }
 
         // PUT: api/GroupPhones/5
@@ -71,12 +69,12 @@ namespace AddressBook.Controllers
                 var groupPhone = user.GroupPhones.FirstOrDefault(gp => gp.Id == id);
                 if (groupPhone != null)
                 {
-                    if (!user.Groups.Any(g => g.Name == groupPhoneDto.Name))
+                    var answer = await _groupPhoneService.UpdateGroupPhoneAsync(user, id, groupPhoneDto.Name);
+                    if (answer.Succeeded)
                     {
-                        await _groupPhoneService.UpdateGroupPhoneAsync(user, id, groupPhoneDto.Name);
                         return Ok();
                     }
-                    return Conflict();
+                    return BadRequest(answer.Errors);
                 }
                 return BadRequest("User -> GroupPhone not found");
             }
@@ -93,13 +91,18 @@ namespace AddressBook.Controllers
             var user = _userService.GetUser(userId);
             if (user != null)
             {
-                if (!user.Groups.Any(g => g.Name == groupPhoneDto.Name))
+                var answer = await _groupPhoneService.AddGroupPhoneAsync(user, (string)groupPhoneDto.Name);
+                if (answer.Succeeded)
                 {
-                    await _groupPhoneService.AddGroupPhoneAsync(user, (string)groupPhoneDto.Name);
-                    groupPhoneDto = _groupPhoneService.GetGroupPhone(user, (string)groupPhoneDto.Name).Value;
-                    return CreatedAtAction("GetGroupPhone", new { userId = groupPhoneDto.UserId, id = groupPhoneDto.Id }, groupPhoneDto);
+                    var answerDto = _groupPhoneService.GetGroupPhone(user, (string)groupPhoneDto.Name);
+                    if (answerDto.Succeeded)
+                    {
+                        groupPhoneDto = answerDto.Value;
+                        return CreatedAtAction("GetGroupPhone", new { userId = groupPhoneDto.UserId, id = groupPhoneDto.Id }, groupPhoneDto);
+                    }
+                    return BadRequest(answerDto.Errors);
                 }
-                return Conflict();
+                return BadRequest(answer.Errors);
             }
             return BadRequest("User not found");
         }

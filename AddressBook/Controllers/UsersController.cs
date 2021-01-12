@@ -30,7 +30,6 @@ namespace AddressBook.Controllers
         public async Task<ActionResult<IEnumerable<UserDto>>> GetUsers()
         {
             List<UserDto> item = _context.Users.Select(u => new UserDto() { Id = u.Id, Login = u.Login, Password = u.Password }).ToList();
-
             return item;
         }
 
@@ -41,16 +40,14 @@ namespace AddressBook.Controllers
             var user = _usersService.GetUser(id);
             if (user != null)
             {
-                UserDto item = new UserDto()
+                return new UserDto()
                 {
                     Id = user.Id,
                     Login = user.Login,
                     Password = user.Password
                 };
-
-                return item;
             }
-            return NotFound();
+            return BadRequest("User not found");
         }
 
         // PUT: api/Users/5
@@ -62,13 +59,12 @@ namespace AddressBook.Controllers
             var user = _usersService.GetUser(id);
             if (user != null)
             {
-                if (!_context.Users.Any(u => u.Login == userDto.Login))
+                var answer = await _usersService.UpdateUserAsync(user, userDto.Login, userDto.Password);
+                if (answer.Succeeded)
                 {
-                    _usersService.UpdateUserAsync(user, userDto.Login, userDto.Password);
-                    await _context.SaveChangesAsync();
                     return Ok();
                 }
-                return Conflict();
+                return BadRequest(answer.Errors);
             }
             return BadRequest("User not found");
         }
@@ -79,18 +75,17 @@ namespace AddressBook.Controllers
         [HttpPost]
         public async Task<ActionResult<User>> AddUser(UserDto user)
         {
-            if (!_context.Users.Any(u => u.Login == user.Login))
+            var answer = await _usersService.AddUserAsync(user.Login, user.Password);
+            if (answer.Succeeded)
             {
-                var error = await _usersService.AddUserAsync(user);
-                if (!error.Succeeded)
+                var answerDto = _usersService.GetUser(user.Login, user.Password);
+                if (answerDto.Succeeded)
                 {
-                    BadRequest(error);
+                    return CreatedAtAction("GetUser", new { id = user.Id }, user);
                 }
-                user.Id = _context.Users.FirstAsync(u => u.Login == user.Login).Result.Id;
-                await _context.SaveChangesAsync();
-                return CreatedAtAction("GetUser", new { id = user.Id }, user);
+                return BadRequest(answerDto.Errors);
             }
-            return Conflict();
+            return BadRequest(answer.Errors);
         }
 
         // DELETE: api/Users/5
@@ -100,11 +95,10 @@ namespace AddressBook.Controllers
             var user = _usersService.GetUser(id);
             if (user != null)
             {
-                _context.Users.Remove(user);
-                await _context.SaveChangesAsync();
+                await _usersService.DeleteUserAsync(user);
                 return new UserDto() { Id = user.Id, Login = user.Login, Password = user.Password };
             }
-            return NotFound();
+            return BadRequest("User not found");
         }
     }
 }

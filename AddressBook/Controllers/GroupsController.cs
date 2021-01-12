@@ -45,18 +45,16 @@ namespace AddressBook.Controllers
                 var group = user.Groups.FirstOrDefault(u => u.Id == id);
                 if (group != null)
                 {
-                    GroupDto item = new GroupDto()
+                    return new GroupDto()
                     {
                         Id = group.Id,
                         UserId = group.UserId,
                         Name = group.Name
                     };
-
-                    return item;
                 }
-                return NotFound();
+                return BadRequest("User -> Group not found");
             }
-            return NotFound();
+            return BadRequest("User not found");
         }
 
         // PUT: api/Groups/5
@@ -71,12 +69,12 @@ namespace AddressBook.Controllers
                 var group = user.Groups.FirstOrDefault(g => g.Id == id);
                 if (group != null)
                 {
-                    if (!user.Groups.Any(g => g.Name == groupDto.Name))
+                    var answer = await _groupService.UpdateGroupAsync(user, id, groupDto.Name);
+                    if (answer.Succeeded)
                     {
-                        await _groupService.UpdateGroupAsync(user, id, groupDto.Name);
                         return Ok();
                     }
-                    return Conflict();
+                    return BadRequest(answer.Errors);
                 }
                 return BadRequest("User -> Group not found");
             }
@@ -92,13 +90,18 @@ namespace AddressBook.Controllers
             var user = _userService.GetUser(userId);
             if (user != null)
             {
-                if (!user.Groups.Any(g => g.Name == groupDto.Name))
+                var answer = await _groupService.AddGroupAsync(user, groupDto.Name);
+                if (answer.Succeeded)
                 {
-                    await _groupService.AddGroupAsync(user, groupDto.Name);
-                    groupDto = _groupService.GetGroup(user, groupDto.Name).Value;
-                    return CreatedAtAction("GetGroup", new { userId = userId, id = groupDto.Id }, groupDto);
+                    var answerDto = _groupService.GetGroup(user, groupDto.Name);
+                    if (answerDto.Succeeded)
+                    {
+                        groupDto = answerDto.Value;
+                        return CreatedAtAction("GetGroup", new { userId = userId, id = groupDto.Id }, groupDto);
+                    }
+                    return BadRequest(answerDto.Errors);
                 }
-                return Conflict();
+                return BadRequest(answer.Errors);
             }
             return BadRequest("User not found");
         }

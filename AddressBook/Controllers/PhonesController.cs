@@ -51,21 +51,19 @@ namespace AddressBook.Controllers
                     var phone = abonent.Phones.FirstOrDefault(u => u.Id == id);
                     if (phone != null)
                     {
-                        PhoneDto item = new PhoneDto()
+                        return new PhoneDto()
                         {
                             Id = phone.Id,
                             AbonentId = phone.AbonentId,
                             GroupPhoneId = phone.GroupPhoneId,
                             Number = phone.Number
                         };
-
-                        return item;
                     }
-                    return NotFound();
+                    return BadRequest("User -> Abonent -> Phone not found");
                 }
-                return NotFound();
+                return BadRequest("User -> Abonent not found");
             }
-            return NotFound();
+            return BadRequest("User not found");
         }
 
         // PUT: api/Phones/5
@@ -77,23 +75,23 @@ namespace AddressBook.Controllers
             var user = _userService.GetUser(userId);
             if (user != null)
             {
-                var abonent =_abonentService.GetAbonent(user, abonentId);
+                var abonent = _abonentService.GetAbonent(user, abonentId);
                 if (abonent != null)
                 {
                     var phone = abonent.Phones.FirstOrDefault(p => p.Id == id);
                     if (phone != null)
                     {
-                        if (!abonent.Phones.Any(p => p.Number == phoneDto.Number))
+                        var groupPhone = user.GroupPhones.FirstOrDefault(gp => gp.Id == phoneDto.GroupPhoneId);
+                        if (groupPhone != null || phoneDto.GroupPhoneId == null)
                         {
-                            var groupPhone = user.GroupPhones.FirstOrDefault(gp => gp.Id == phoneDto.GroupPhoneId);
-                            if (groupPhone != null || phoneDto.GroupPhoneId == null)
+                            var answer = await _phoneService.UpdatePhoneAsync(abonent, id, groupPhone, phoneDto.Number);
+                            if (answer.Succeeded)
                             {
-                                await _phoneService.UpdatePhoneAsync(abonent, id, groupPhone, phoneDto.Number);
                                 return Ok();
                             }
-                            return BadRequest("User -> GroupPhone not found");
+                            return BadRequest(answer.Errors);
                         }
-                        return Conflict();
+                        return BadRequest("User -> GroupPhone not found");
                     }
                     return BadRequest("User -> Abonent -> Phone not found");
                 }
@@ -114,18 +112,23 @@ namespace AddressBook.Controllers
                 var abonent = _abonentService.GetAbonent(user, abonentId);
                 if (abonent != null)
                 {
-                    if (!abonent.Phones.Any(p => p.Number == phoneDto.Number))
+                    var phoneGroup = user.GroupPhones.FirstOrDefault(gp => gp.Id == phoneDto.GroupPhoneId);
+                    if (phoneGroup != null)
                     {
-                        var phoneGroup = user.GroupPhones.FirstOrDefault(gp => gp.Id == phoneDto.GroupPhoneId);
-                        if (phoneGroup != null)
+                        var answer = await _phoneService.AddPhoneAsync(abonent, phoneGroup, phoneDto.Number);
+                        if (answer.Succeeded)
                         {
-                            await _phoneService.AddPhoneAsync(abonent, phoneGroup, phoneDto.Number);
-                            phoneDto = _phoneService.GetPhone(abonent, phoneGroup, phoneDto.Number).Value;
-                            return CreatedAtAction("GetPhone", new { userId = userId, abonentId = phoneDto.AbonentId, id = phoneDto.Id }, phoneDto);
+                            var answerDto = _phoneService.GetPhone(abonent, phoneGroup, phoneDto.Number);
+                            if (answerDto.Succeeded)
+                            {
+                                phoneDto = answerDto.Value;
+                                return CreatedAtAction("GetPhone", new { userId = userId, abonentId = phoneDto.AbonentId, id = phoneDto.Id }, phoneDto);
+                            }
+                            return BadRequest(answerDto.Errors);
                         }
-                        return BadRequest("User -> GroupPhones not found");
+                        return BadRequest(answer.Errors);
                     }
-                    return Conflict();
+                    return BadRequest("User -> GroupPhones not found");
                 }
                 return BadRequest("User -> Abonent not found");
             }
@@ -146,7 +149,7 @@ namespace AddressBook.Controllers
                     if (phone != null)
                     {
                         await _phoneService.DeletePhoneAsync(abonent, phone);
-                        return new PhoneDto() {Id = phone.Id, AbonentId = phone.AbonentId, GroupPhoneId = phone.GroupPhoneId, Number = phone.Number };
+                        return new PhoneDto() { Id = phone.Id, AbonentId = phone.AbonentId, GroupPhoneId = phone.GroupPhoneId, Number = phone.Number };
                     }
                     return BadRequest("User -> Abonent -> Phone not found");
                 }

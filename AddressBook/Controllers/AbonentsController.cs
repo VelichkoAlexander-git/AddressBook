@@ -53,27 +53,25 @@ namespace AddressBook.Controllers
             var user = _userService.GetUser(userId);
             if (user != null)
             {
-                var Abonent = user.Abonents.FirstOrDefault(u => u.Id == id);
-                if (Abonent != null)
+                var abonent = user.Abonents.FirstOrDefault(u => u.Id == id);
+                if (abonent != null)
                 {
-                    AbonentDto item = new AbonentDto()
+                    return new AbonentDto()
                     {
-                        Id = Abonent.Id,
-                        UserId = Abonent.UserId,
-                        FirstName = Abonent.FirstName,
-                        MiddleName = Abonent.MiddleName,
-                        LastName = Abonent.LastName,
-                        Sex = Abonent.Sex,
-                        DateOfBirth = Abonent.DateOfBirth,
-                        Photo = Abonent.Photo,
-                        Mail = Abonent.Mail
+                        Id = abonent.Id,
+                        UserId = abonent.UserId,
+                        FirstName = abonent.FirstName,
+                        MiddleName = abonent.MiddleName,
+                        LastName = abonent.LastName,
+                        Sex = abonent.Sex,
+                        DateOfBirth = abonent.DateOfBirth,
+                        Photo = abonent.Photo,
+                        Mail = abonent.Mail
                     };
-
-                    return item;
                 }
-                return NotFound();
+                return BadRequest("User -> Abonent not found");
             }
-            return NotFound();
+            return BadRequest("User not found");
         }
 
         // PUT: api/Abonents/5
@@ -88,20 +86,19 @@ namespace AddressBook.Controllers
                 var abonent = user.Abonents.FirstOrDefault(a => a.Id == id);
                 if (abonent != null)
                 {
-                    if (!user.Abonents.Any(g => g.FirstName == AbonentDto.FirstName
-                                                                     && g.MiddleName == AbonentDto.MiddleName
-                                                                     && g.LastName == AbonentDto.LastName))
+
+                    var answer = await _abonentService.UpdateAbonentAsync(user, id, AbonentDto.FirstName,
+                                                                       AbonentDto.MiddleName,
+                                                                       AbonentDto.LastName,
+                                                                       AbonentDto.DateOfBirth,
+                                                                       AbonentDto.Photo,
+                                                                       AbonentDto.Sex,
+                                                                       AbonentDto.Mail);
+                    if (answer.Succeeded)
                     {
-                        await _abonentService.UpdateAbonentAsync(user, id, AbonentDto.FirstName,
-                                                                           AbonentDto.MiddleName,
-                                                                           AbonentDto.LastName,
-                                                                           AbonentDto.DateOfBirth,
-                                                                           AbonentDto.Photo,
-                                                                           AbonentDto.Sex,
-                                                                           AbonentDto.Mail);
                         return Ok();
                     }
-                    return Conflict();
+                    return BadRequest(answer.Errors);
                 }
                 return BadRequest("User -> Abonent not found");
             }
@@ -117,21 +114,25 @@ namespace AddressBook.Controllers
             var user = _userService.GetUser(userId);
             if (user != null)
             {
-                if (!user.Abonents.Any(g => g.FirstName == AbonentDto.FirstName
-                                                                 && g.MiddleName == AbonentDto.MiddleName
-                                                                 && g.LastName == AbonentDto.LastName))
+
+                var answer = await _abonentService.AddAbonentAsync(user, AbonentDto.FirstName,
+                                                            AbonentDto.MiddleName,
+                                                            AbonentDto.LastName,
+                                                            AbonentDto.DateOfBirth,
+                                                            AbonentDto.Photo,
+                                                            AbonentDto.Sex,
+                                                            AbonentDto.Mail);
+                if (answer.Succeeded)
                 {
-                    await _abonentService.AddAbonentAsync(user, AbonentDto.FirstName,
-                                                                AbonentDto.MiddleName,
-                                                                AbonentDto.LastName,
-                                                                AbonentDto.DateOfBirth,
-                                                                AbonentDto.Photo,
-                                                                AbonentDto.Sex,
-                                                                AbonentDto.Mail);
-                    AbonentDto = _abonentService.GetAbonent(user, AbonentDto.FirstName, AbonentDto.MiddleName, AbonentDto.LastName).Value;
-                    return CreatedAtAction("GetAbonent", new { userId = AbonentDto.UserId, id = AbonentDto.Id }, AbonentDto);
+                    var answerDto = _abonentService.GetAbonent(user, AbonentDto.FirstName, AbonentDto.MiddleName, AbonentDto.LastName);
+                    if (answerDto.Succeeded)
+                    {
+                        AbonentDto = answerDto.Value;
+                        return CreatedAtAction("GetAbonent", new { userId = AbonentDto.UserId, id = AbonentDto.Id }, AbonentDto);
+                    }
+                    return BadRequest(answerDto.Errors);
                 }
-                return Conflict();
+                return BadRequest(answer.Errors);
             }
             return BadRequest("User not found");
         }

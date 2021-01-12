@@ -45,18 +45,16 @@ namespace AddressBook.Controllers
                 var groupAddress = user.GroupAddresses.FirstOrDefault(u => u.Id == id);
                 if (groupAddress != null)
                 {
-                    GroupAddressDto item = new GroupAddressDto()
+                    return new GroupAddressDto()
                     {
                         Id = groupAddress.Id,
                         UserId = groupAddress.UserId,
                         Name = groupAddress.Name
                     };
-
-                    return item;
                 }
-                return NotFound();
+                return BadRequest("User -> GroupAddress not found");
             }
-            return NotFound();
+            return BadRequest("User not found");
         }
 
         // PUT: api/GroupAddresses/5
@@ -71,12 +69,12 @@ namespace AddressBook.Controllers
                 var groupAddress = user.GroupAddresses.FirstOrDefault(ga => ga.Id == id);
                 if (groupAddress != null)
                 {
-                    if (!user.GroupAddresses.Any(g => g.Name == groupAddressDto.Name))
+                    var answer = await _groupAddressService.UpdateGroupAddressAsync(user, id, groupAddressDto.Name);
+                    if (answer.Succeeded)
                     {
-                        await _groupAddressService.UpdateGroupAddressAsync(user, id, groupAddressDto.Name);
                         return Ok();
                     }
-                    return Conflict();
+                    return BadRequest(answer.Errors);
                 }
                 return BadRequest("User -> GroupAddress not found");
             }
@@ -92,13 +90,18 @@ namespace AddressBook.Controllers
             var user = _userService.GetUser(userId);
             if (user != null)
             {
-                if (!user.GroupAddresses.Any(g => g.Name == groupAddressDto.Name))
+                var answer = await _groupAddressService.AddGroupAddressAsync(user, (string)groupAddressDto.Name);
+                if (answer.Succeeded)
                 {
-                    await _groupAddressService.AddGroupAddressAsync(user, (string)groupAddressDto.Name);
-                    groupAddressDto = _groupAddressService.GetGroupAddress(user, (string)groupAddressDto.Name).Value;
-                    return CreatedAtAction("GetGroupAddress", new { userId = groupAddressDto.UserId, id = groupAddressDto.Id }, groupAddressDto);
+                    var answerDto = _groupAddressService.GetGroupAddress(user, (string)groupAddressDto.Name);
+                    if (answerDto.Succeeded)
+                    {
+                        groupAddressDto = answerDto.Value;
+                        return CreatedAtAction("GetGroupAddress", new { userId = groupAddressDto.UserId, id = groupAddressDto.Id }, groupAddressDto);
+                    }
+                    return BadRequest(answerDto.Errors);
                 }
-                return Conflict();
+                return BadRequest(answer.Errors);
             }
             return BadRequest("User not found");
         }

@@ -17,21 +17,24 @@ namespace AddressBook.BL
         }
         public async Task<Result<bool>> AddAbonentAsync(User user, string firstName, string middleName, string lastName, DateTime? dateOfBirth, byte[] photo, Sex sex, string mail)
         {
-            var newAbonent = Abonent.Create(firstName,
+            if (!user.Abonents.Any(g => g.FirstName == firstName && g.MiddleName == middleName && g.LastName == lastName))
+            {
+                var newAbonent = Abonent.Create(firstName,
                             middleName,
                             lastName,
                             dateOfBirth,
                             photo,
                             sex,
                             mail);
-            if (!newAbonent.Succeeded)
-            {
-                return Result<bool>.Success(false);
+                if (newAbonent.Succeeded)
+                {
+                    user.AddAbonent(newAbonent.Value);
+                    await db.SaveChangesAsync();
+                    return Result<bool>.Success(true);
+                }
+                return Result<bool>.Fail(newAbonent.Errors);
             }
-
-            user.AddAbonent(newAbonent.Value);
-            await db.SaveChangesAsync();
-            return Result<bool>.Success(true);
+            return Result<bool>.Fail(new string[] { "Such Abonent exists" });
         }
 
         public Abonent GetAbonent(int UserId, int AbonentId)
@@ -49,10 +52,18 @@ namespace AddressBook.BL
             await db.SaveChangesAsync();
         }
 
-        public async Task UpdateAbonentAsync(User user, int id, string firstName, string middleName, string lastName, DateTime? dateOfBirth, byte[] photo, Sex sex, string mail)
+        public async Task<Result<bool>> UpdateAbonentAsync(User user, int id, string firstName, string middleName, string lastName, DateTime? dateOfBirth, byte[] photo, Sex sex, string mail)
         {
-            user.UpdateAbonent(id, firstName, middleName, lastName, sex, dateOfBirth, photo, mail);
-            await db.SaveChangesAsync();
+            if (!user.Abonents.Any(g => g.FirstName == firstName && g.MiddleName == middleName && g.LastName == lastName))
+            {
+                var answer = user.UpdateAbonent(id, firstName, middleName, lastName, sex, dateOfBirth, photo, mail);
+                if (answer.Succeeded)
+                {
+                    await db.SaveChangesAsync();
+                }
+                return Result<bool>.Fail(answer.Errors);
+            }
+            return Result<bool>.Fail(new string[] { "Such Abonent exists" });
         }
 
         public Abonent GetAbonent(User user, int id)
@@ -68,7 +79,7 @@ namespace AddressBook.BL
             return null;
         }
 
-        public Result<AbonentDto> GetAbonent(User user,string firstName, string middleName, string lastName)
+        public Result<AbonentDto> GetAbonent(User user, string firstName, string middleName, string lastName)
         {
             var abonent = user.Abonents.FirstOrDefault(g => g.FirstName == firstName
                                                                  && g.MiddleName == middleName
@@ -88,10 +99,7 @@ namespace AddressBook.BL
                     Mail = abonent.Mail
                 });
             }
-            else
-            {
-                return Result<AbonentDto>.Fail(new string[] { "Abonent not found" });
-            }
+            return Result<AbonentDto>.Fail(new string[] { "Abonent not found" });
         }
     }
 }

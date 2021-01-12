@@ -17,15 +17,18 @@ namespace AddressBook.BL
         }
         public async Task<Result<bool>> AddAbonentGroupAsync(Abonent abonent, Group group)
         {
-            var newAddress = AbonentGroup.Create(abonent, group);
-            if (!newAddress.Succeeded)
+            if (!abonent.Groups.Any(p => p.Id == group.Id))
             {
-                return Result<bool>.Success(false);
+                var newAddress = AbonentGroup.Create(abonent, group);
+                if (newAddress.Succeeded)
+                {
+                    abonent.AddAbonentGroup(newAddress.Value);
+                    await db.SaveChangesAsync();
+                    return Result<bool>.Success(true);
+                }
+                return Result<bool>.Fail(newAddress.Errors);
             }
-
-            abonent.AddAbonentGroup(newAddress.Value);
-            await db.SaveChangesAsync();
-            return Result<bool>.Success(true);
+            return Result<bool>.Fail(new string[] { "Such AbonentGroup exists" });
         }
 
         public async Task<Result<bool>> DeleteAbonentGroupAsync(User user, Abonent abonent, Group abonentGroup)
@@ -36,7 +39,7 @@ namespace AddressBook.BL
                 await db.SaveChangesAsync();
                 return Result<bool>.Success(true);
             }
-            return Result<bool>.Success(false);
+            return Result<bool>.Fail(new string[] { "AbbonentGroup not found" });
         }
     }
 }

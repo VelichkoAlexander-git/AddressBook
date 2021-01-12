@@ -76,18 +76,18 @@ namespace AddressBook.Controllers
                 var abonent = _abonentService.GetAbonent(user, abonentId);
                 if (abonent != null)
                 {
-                    if (!abonent.Groups.Any(p => p.Id == abonentGroup.GroupId))
+                    var group = user.Groups.FirstOrDefault(g => g.Id == abonentGroup.GroupId);
+                    if (group != null)
                     {
-                        var group = user.Groups.FirstOrDefault(g => g.Id == abonentGroup.GroupId);
-                        if (group != null)
+                        var answer = await _abonentGroupServiceService.AddAbonentGroupAsync(abonent, group);
+                        if (answer.Succeeded)
                         {
-                            await _abonentGroupServiceService.AddAbonentGroupAsync(abonent, group);
                             abonentGroup.AbonentId = abonentId;
                             return CreatedAtAction("GetAbonentGroup", new { userId = userId, abonentId = abonentGroup.AbonentId, id = abonentGroup.GroupId }, abonentGroup);
                         }
-                        return BadRequest("User -> Group not found");
+                        return BadRequest(answer.Errors);
                     }
-                    return Conflict();
+                    return BadRequest("User -> Group not found");
                 }
                 return BadRequest("User -> Abonent not found");
             }
@@ -110,7 +110,7 @@ namespace AddressBook.Controllers
                         await _abonentGroupServiceService.DeleteAbonentGroupAsync(user, abonent, abonentGroup);
                         return new AbonentGroupDto() { AbonentId = abonent.Id, GroupId = abonentGroup.Id };
                     }
-                    return NotFound();
+                    return BadRequest("User -> Abonent -> AbonentGroup not found");
                 }
                 return BadRequest("User -> Abonent not found");
             }

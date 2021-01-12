@@ -18,15 +18,18 @@ namespace AddressBook.BL
 
         public async Task<Result<bool>> AddAddressAsync(Abonent abonent, GroupAddress groupAddress, string information)
         {
-            var newAddress = Address.Create(groupAddress, information);
-            if (!newAddress.Succeeded)
+            if (!abonent.Addresses.Any(p => p.Information == information))
             {
-                return Result<bool>.Success(false);
+                var newAddress = Address.Create(groupAddress, information);
+                if (newAddress.Succeeded)
+                {
+                    abonent.AddAddress(newAddress.Value);
+                    await db.SaveChangesAsync();
+                    return Result<bool>.Success(true);
+                }
+                return Result<bool>.Fail(newAddress.Errors);
             }
-
-            abonent.AddAddress(newAddress.Value);
-            await db.SaveChangesAsync();
-            return Result<bool>.Success(true);
+            return Result<bool>.Fail(new string[] { "Such Address exists" });
         }
 
         public async Task DeleteAddressAsync(Abonent abonent, Address address)
@@ -35,10 +38,18 @@ namespace AddressBook.BL
             await db.SaveChangesAsync();
         }
 
-        public async Task UpdateAddressAsync(Abonent abonent, int id, GroupAddress addressGroup, string information)
+        public async Task<Result<bool>> UpdateAddressAsync(Abonent abonent, int id, GroupAddress addressGroup, string information)
         {
-            abonent.UpdateAddress(id, addressGroup, information);
-            await db.SaveChangesAsync();
+            if (!abonent.Addresses.Any(p => p.Information == information))
+            {
+                var answer = abonent.UpdateAddress(id, addressGroup, information);
+                if (answer.Succeeded)
+                {
+                    await db.SaveChangesAsync();
+                }
+                return Result<bool>.Fail(answer.Errors);
+            }
+            return Result<bool>.Fail(new string[] { "Such Address exists" });
         }
 
         public Result<AddressDto> GetAddress(Abonent abonent, GroupAddress addressGroup, string information)
@@ -55,10 +66,7 @@ namespace AddressBook.BL
                     Information = address.Information
                 });
             }
-            else
-            {
-                return Result<AddressDto>.Fail(new string[] { "Address not found" });
-            }
+            return Result<AddressDto>.Fail(new string[] { "Address not found" });
         }
     }
 }

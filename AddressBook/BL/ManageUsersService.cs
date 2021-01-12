@@ -16,36 +16,34 @@ namespace AddressBook.BL
         {
             db = usersContext;
         }
-        public async Task<Result<bool>> AddUserAsync(UserDto user)
+        public async Task<Result<bool>> AddUserAsync(string login, string password)
         {
-            if (db.Users.Any(u => u.Login == user.Login))
+            if (!db.Users.Any(u => u.Login == login))
             {
-                return Result<bool>.Success(false);
+                // validate data
+                var newUser = User.Register(login, password);
+                if (newUser.Succeeded)
+                {
+                    // perform additional actions
+                    CreateGroup(newUser.Value, "Семья");
+                    CreateGroup(newUser.Value, "Рабочий");
+                    CreateGroup(newUser.Value, "Друзья");
+                    CreateGroup(newUser.Value, "Общие");
+
+                    CreateGroupPhone(newUser.Value, "Домашний");
+                    CreateGroupPhone(newUser.Value, "Рабочий");
+                    CreateGroupPhone(newUser.Value, "Мобильный");
+
+                    CreateGroupAddress(newUser.Value, "Домашний");
+                    CreateGroupAddress(newUser.Value, "Рабочий");
+
+                    db.Users.Add(newUser.Value);
+                    await db.SaveChangesAsync();
+                    return Result<bool>.Success(true);
+                }
+                return Result<bool>.Fail(newUser.Errors);
             }
-            // validate data
-            var newUser = User.Register(user.Login, user.Password);
-            if (!newUser.Succeeded)
-            {
-                return Result<bool>.Success(false);
-            }
-
-            // perform additional actions
-            CreateGroup(newUser.Value, "Семья");
-            CreateGroup(newUser.Value, "Рабочий");
-            CreateGroup(newUser.Value, "Друзья");
-            CreateGroup(newUser.Value, "Общие");
-
-            CreateGroupPhone(newUser.Value, "Домашний");
-            CreateGroupPhone(newUser.Value, "Рабочий");
-            CreateGroupPhone(newUser.Value, "Мобильный");
-
-            CreateGroupAddress(newUser.Value, "Домашний");
-            CreateGroupAddress(newUser.Value, "Рабочий");
-
-            db.Users.Add(newUser.Value);
-            await db.SaveChangesAsync();
-
-            return Result<bool>.Success(true);
+            return Result<bool>.Fail(new string[] { "Such User exists" });
         }
 
         private Result<bool> CreateGroup(User user, string str)
@@ -93,14 +91,19 @@ namespace AddressBook.BL
             return Result<bool>.Success(false);
         }
 
-        public Result<bool> UpdateUserAsync(User user, string login, string password)
+        public async Task<Result<bool>> UpdateUserAsync(User user, string login, string password)
         {
-            var updateResult = user.Update(login, password);
-            if (!updateResult.Succeeded)
+            if (!db.Users.Any(u => u.Login == login))
             {
+                var updateResult = user.Update(login, password);
+                if (updateResult.Succeeded)
+                {
+                    await db.SaveChangesAsync();
+                    return Result<bool>.Success(true);
+                }
                 return Result<bool>.Fail(updateResult.Errors);
             }
-            return Result<bool>.Success(true);
+            return Result<bool>.Fail(new string[] { "Such User exists" });
         }
 
         public User GetUser(int id)
@@ -115,6 +118,26 @@ namespace AddressBook.BL
                 return user;
             }
             return null;
+        }
+        public Result<UserDto> GetUser(string login, string password)
+        {
+            var user = db.Users.FirstOrDefault(u => u.Login == login && u.Password == password);
+            if (user != null)
+            {
+                return Result<UserDto>.Success(new UserDto()
+                {
+                    Id = user.Id,
+                    Login = user.Login,
+                    Password = user.Password
+                });
+            }
+            return Result<UserDto>.Fail(new string[] { "User not found" });
+        }
+
+        public async Task DeleteUserAsync(User user)
+        {
+            db.Users.Remove(user);
+            await db.SaveChangesAsync();
         }
     }
 }

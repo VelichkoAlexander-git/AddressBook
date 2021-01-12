@@ -17,15 +17,18 @@ namespace AddressBook.BL
         }
         public async Task<Result<bool>> AddGroupAddressAsync(User user, string name)
         {
-            var newGroupAddress = GroupAddress.Create(name);
-            if (!newGroupAddress.Succeeded)
+            if (!user.GroupAddresses.Any(g => g.Name == name))
             {
-                return Result<bool>.Success(false);
+                var newGroupAddress = GroupAddress.Create(name);
+                if (newGroupAddress.Succeeded)
+                {
+                    user.AddGroupAddress(newGroupAddress.Value);
+                    await db.SaveChangesAsync();
+                    return Result<bool>.Success(true);
+                }
+                return Result<bool>.Fail(newGroupAddress.Errors);
             }
-
-            user.AddGroupAddress(newGroupAddress.Value);
-            await db.SaveChangesAsync();
-            return Result<bool>.Success(true);
+            return Result<bool>.Fail(new string[] { "Such GroupAddress exists" });
         }
 
         public async Task<Result<bool>> DeleteGroupAddressAsync(User user, GroupAddress groupAddress)
@@ -39,10 +42,18 @@ namespace AddressBook.BL
             return Result<bool>.Success(false);
         }
 
-        public async Task UpdateGroupAddressAsync(User user, int id, string name)
+        public async Task<Result<bool>> UpdateGroupAddressAsync(User user, int id, string name)
         {
-            user.UpdateGroupAddress(id, name);
-            await db.SaveChangesAsync();
+            if (!user.GroupAddresses.Any(g => g.Name == name))
+            {
+                var answer = user.UpdateGroupAddress(id, name);
+                if (answer.Succeeded)
+                {
+                    await db.SaveChangesAsync();
+                }
+                return Result<bool>.Fail(answer.Errors);
+            }
+            return Result<bool>.Fail(new string[] { "Such GroupAddress exists" });
         }
 
         public Result<GroupAddressDto> GetGroupAddress(User user, string name)
@@ -52,10 +63,7 @@ namespace AddressBook.BL
             {
                 return Result<GroupAddressDto>.Success(new GroupAddressDto() { Id = groupAddress.Id, UserId = groupAddress.UserId, Name = groupAddress.Name });
             }
-            else
-            {
-                return Result<GroupAddressDto>.Fail(new string[] { "Group Address not found" });
-            }
+            return Result<GroupAddressDto>.Fail(new string[] { "GroupAddress not found" });
         }
     }
 }

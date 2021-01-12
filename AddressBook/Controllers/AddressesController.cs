@@ -51,21 +51,19 @@ namespace AddressBook.Controllers
                     var address = abonent.Addresses.FirstOrDefault(u => u.Id == id);
                     if (address != null)
                     {
-                        AddressDto item = new AddressDto()
+                        return new AddressDto()
                         {
                             Id = address.Id,
                             AbonentId = address.AbonentId,
                             GroupAddressId = address.GroupAddressId,
                             Information = address.Information
                         };
-
-                        return item;
                     }
-                    return NotFound();
+                    return BadRequest("User -> Abonent -> Address not found");
                 }
-                return NotFound();
+                return BadRequest("User -> Abonent not found");
             }
-            return NotFound();
+            return BadRequest("User not found");
         }
 
         // PUT: api/Addresses/5
@@ -83,17 +81,17 @@ namespace AddressBook.Controllers
                     var address = abonent.Addresses.FirstOrDefault(a => a.Id == id);
                     if (address != null)
                     {
-                        if (!abonent.Addresses.Any(p => p.Information == addressDto.Information))
+                        var addressGroup = user.GroupAddresses.FirstOrDefault(ga => ga.Id == addressDto.GroupAddressId);
+                        if (addressGroup != null)
                         {
-                            var addressGroup = user.GroupAddresses.FirstOrDefault(ga => ga.Id == addressDto.GroupAddressId);
-                            if (addressGroup != null)
+                            var answer = await _addressService.UpdateAddressAsync(abonent, id, addressGroup, addressDto.Information);
+                            if (answer.Succeeded)
                             {
-                                await _addressService.UpdateAddressAsync(abonent, id, addressGroup, addressDto.Information);
                                 return Ok();
                             }
-                            return BadRequest("User -> GroupAddress not found");
+                            return BadRequest(answer.Errors);
                         }
-                        return Conflict();
+                        return BadRequest("User -> GroupAddress not found");
                     }
                     return BadRequest("User -> Abonent -> Address not found");
                 }
@@ -114,18 +112,23 @@ namespace AddressBook.Controllers
                 var abonent = _abonentService.GetAbonent(user, abonentId);
                 if (abonent != null)
                 {
-                    if (!abonent.Addresses.Any(p => p.Information == addressDto.Information))
+                    var addressGroup = user.GroupAddresses.FirstOrDefault(ga => ga.Id == addressDto.GroupAddressId);
+                    if (addressGroup != null)
                     {
-                        var addressGroup = user.GroupAddresses.FirstOrDefault(ga => ga.Id == addressDto.GroupAddressId);
-                        if (addressGroup != null)
+                        var answer = await _addressService.AddAddressAsync(abonent, addressGroup, addressDto.Information);
+                        if (answer.Succeeded)
                         {
-                            await _addressService.AddAddressAsync(abonent, addressGroup, addressDto.Information);
-                            addressDto = _addressService.GetAddress(abonent, addressGroup, addressDto.Information).Value;
-                            return CreatedAtAction("GetAddress", new { userId = userId, abonentId = addressDto.AbonentId, id = addressDto.Id }, addressDto);
+                            var answerDto = _addressService.GetAddress(abonent, addressGroup, addressDto.Information);
+                            if (answerDto.Succeeded)
+                            {
+                                addressDto = answerDto.Value;
+                                return CreatedAtAction("GetAddress", new { userId = userId, abonentId = addressDto.AbonentId, id = addressDto.Id }, addressDto);
+                            }
+                            return BadRequest(answerDto.Errors);
                         }
-                        return BadRequest("User -> GroupAddress not found");
+                        return BadRequest(answer.Errors);
                     }
-                    return Conflict();
+                    return BadRequest("User -> GroupAddress not found");
                 }
                 return BadRequest("User -> Abonent not found");
             }

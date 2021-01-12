@@ -18,16 +18,18 @@ namespace AddressBook.BL
 
         public async Task<Result<bool>> AddPhoneAsync(Abonent abonent, GroupPhone phoneGroup, string number)
         {
-            var newPhone = Phone.Create(phoneGroup, number);
-            if (!newPhone.Succeeded)
+            if (!abonent.Phones.Any(p => p.Number == number))
             {
-                return Result<bool>.Success(false);
+                var newPhone = Phone.Create(phoneGroup, number);
+                if (newPhone.Succeeded)
+                {
+                    abonent.AddPhone(newPhone.Value);
+                    await db.SaveChangesAsync();
+                    return Result<bool>.Success(true);
+                }
+                return Result<bool>.Fail(newPhone.Errors);
             }
-
-            abonent.AddPhone(newPhone.Value);
-            await db.SaveChangesAsync();
-
-            return Result<bool>.Success(true);
+            return Result<bool>.Fail(new string[] { "Such Phone exists" });
         }
 
         public async Task DeletePhoneAsync(Abonent abonent, Phone phone)
@@ -37,11 +39,18 @@ namespace AddressBook.BL
             await db.SaveChangesAsync();
         }
 
-        public async Task UpdatePhoneAsync(Abonent abonent, int phoneId, GroupPhone groupPhone, string number)
+        public async Task<Result<bool>> UpdatePhoneAsync(Abonent abonent, int phoneId, GroupPhone groupPhone, string number)
         {
-            abonent.UpdatePhone(phoneId, groupPhone, number);
-
-            await db.SaveChangesAsync();
+            if (!abonent.Phones.Any(p => p.Number == number))
+            {
+                var answer = abonent.UpdatePhone(phoneId, groupPhone, number);
+                if (answer.Succeeded)
+                {
+                    await db.SaveChangesAsync();
+                }
+                return Result<bool>.Fail(answer.Errors);
+            }
+            return Result<bool>.Fail(new string[] { "Such Phone exists" });
         }
 
         public Result<PhoneDto> GetPhone(Abonent abonent, GroupPhone phoneGroup, string number)
@@ -58,10 +67,7 @@ namespace AddressBook.BL
                     Number = address.Number
                 });
             }
-            else
-            {
-                return Result<PhoneDto>.Fail(new string[] { "Address not found" });
-            }
+            return Result<PhoneDto>.Fail(new string[] { "Phone not found" });
         }
     }
 }
