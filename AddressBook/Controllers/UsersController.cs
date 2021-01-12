@@ -81,6 +81,7 @@ namespace AddressBook.Controllers
                 var answerDto = _usersService.GetUser(user.Login, user.Password);
                 if (answerDto.Succeeded)
                 {
+                    user = answerDto.Value;
                     return CreatedAtAction("GetUser", new { id = user.Id }, user);
                 }
                 return BadRequest(answerDto.Errors);
