@@ -46,6 +46,7 @@ namespace AddressBook.BL
                 if (answer.Succeeded)
                 {
                     await db.SaveChangesAsync();
+                    return Result<bool>.Success(true);
                 }
                 return Result<bool>.Fail(answer.Errors);
             }

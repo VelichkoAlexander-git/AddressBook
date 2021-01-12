@@ -34,7 +34,6 @@ namespace AddressBook.BL
         public async Task DeleteGroupAsync(User user, Group group)
         {
             user.RemoveGroup(group);
-
             await db.SaveChangesAsync();
         }
 
@@ -46,6 +45,7 @@ namespace AddressBook.BL
                 if (answer.Succeeded)
                 {
                     await db.SaveChangesAsync();
+                    return Result<bool>.Success(true);
                 }
                 return Result<bool>.Fail(answer.Errors);
             }

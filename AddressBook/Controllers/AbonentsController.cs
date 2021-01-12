@@ -53,7 +53,7 @@ namespace AddressBook.Controllers
             var user = _userService.GetUser(userId);
             if (user != null)
             {
-                var abonent = user.Abonents.FirstOrDefault(u => u.Id == id);
+                var abonent = _abonentService.GetAbonent(user, id);
                 if (abonent != null)
                 {
                     return new AbonentDto()
@@ -83,7 +83,7 @@ namespace AddressBook.Controllers
             var user = _userService.GetUser(userId);
             if (user != null)
             {
-                var abonent = user.Abonents.FirstOrDefault(a => a.Id == id);
+                var abonent = _abonentService.GetAbonent(user, id);
                 if (abonent != null)
                 {
 
@@ -144,7 +144,7 @@ namespace AddressBook.Controllers
             var user = _userService.GetUser(userId);
             if (user != null)
             {
-                var abonent = user.Abonents.FirstOrDefault(a => a.Id == id);
+                var abonent = _abonentService.GetAbonent(user, id);
                 if (abonent != null)
                 {
                     await _abonentService.DeleteAbonentAsync(user, abonent);
